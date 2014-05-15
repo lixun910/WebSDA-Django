@@ -21,6 +21,7 @@ class Geodata(models.Model):
     bbox = models.TextField()
     # fields: {fieldname:type}
     fields = models.TextField()
+    thumbnail = models.URLField()
 
 class Weights(models.Model):
     #md5([username,shpfilename,weightsfilename,wtype,details])

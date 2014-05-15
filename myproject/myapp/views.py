@@ -14,6 +14,8 @@ from hashlib import md5
 from pysal import rook_from_shapefile as rook
 
 def login(request):
+  
+
 def main(request):
     # check user login
     userid = request.session.get('userid', False):
