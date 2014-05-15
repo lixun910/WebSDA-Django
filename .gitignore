@@ -1,0 +1,9 @@
+*.pyc
+.DS_Store
+*.swn
+*.swo
+*.swp
+*.shp
+*.shx
+*.dbf
+*.json

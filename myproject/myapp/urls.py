@@ -1,0 +1,12 @@
+# -*- coding: utf-8 -*-
+from django.conf.urls import patterns, url
+from django.views.generic import TemplateView
+
+urlpatterns = patterns('myproject.myapp.views',
+    url(r'^list/$', 'list', name='list'),
+    url(r'^create_weights/$', 'create_weights', name=''),
+    url(r'^get_weights_names/$', 'get_weights_names', name=''),
+    url(r'^foo/$', TemplateView.as_view(template_name='myapp/foo.html')),
+    url(r'^ols/$', TemplateView.as_view(template_name='myapp/ols.html')),
+    url(r'^weights/$', TemplateView.as_view(template_name='myapp/weights.html')),
+)
