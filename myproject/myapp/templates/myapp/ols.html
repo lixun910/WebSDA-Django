@@ -8,6 +8,11 @@
   <script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/list.js/1.1.1/list.min.js"></script>
   <link rel="stylesheet" href="http://jqueryui.com/resources/demos/style.css">
+
+</head>
+<body>
+ 
+<div id="dialog" title="Spatial Regression Dialog"> 
   <style>
   .ui-widget-overlay { background: #aaa repeat-x; opacity: .8;}
   table { border-spacing: 0;}
@@ -46,154 +51,6 @@
   .weights_tab {border: 1px #bbb solid; border-radius:5px; width: 99%; height: 50px; float: left; margin: 5px 0px 0 0; padding-left: 5px;}
   .weights_tab span {margin: 15px 0 0px 15px; background-color: white; width: 180px; text-align:center; font-weight: bold;}
   </style>
-
-  <script>
-  $(function() {
-    $( "#y_catalog" ).accordion();
-    $( "#x_catalog" ).accordion();
-    $( "#vars ul li" ).draggable({
-      helper: "clone"
-    });
-
-    $( ".drop_box ol li" ).dblclick(function() {
-      console.log($(this));
-    });
-
-    $( ".drop_box ol" ).droppable({
-      activeClass: "ui-state-default",
-      hoverClass: "ui-state-hover",
-      accept: ":not(.ui-sortable-helper)",
-      drop: function( event, ui ) {
-        $( this ).find( ".placeholder" ).remove();
-        // customized behavior for different dropbox
-        console.log($(this).closest("div").attr("id"),$(this).children().length);
-        var box_id = $(this).closest("div").attr("id");
-        var n_items = $(this).children().length;
-        if ( n_items > 0) {
-          if (box_id === 'y_box'||box_id==='ye_box'||box_id==='r_box') 
-            return; 
-        }
-        // drop gragged item
-        $( "<li></li>" ).text( ui.draggable.text() ).appendTo( this ).dblclick(function(){
-          $(this).remove();
-          ui.draggable.show();
-        });
-        ui.draggable.hide();
-      }
-    }).sortable({
-      items: "li:not(.placeholder)",
-      sort: function() {
-        // gets added unintentionally by droppable interacting with sortable
-        // using connectWithSortable fixes this, but doesn't allow you to customize active/hoverClass options
-        $( this ).removeClass( "ui-state-default" );
-      }
-    });
-    $( "#dialog" ).dialog({dialogClass: "dialogWithDropShadow"});
-
-  });
-
-  //
-
-  $(document).ready(function() {
-    // model type
-    $('input:radio[name=model_type]').click( function() {
-      var model_type = $(this).val();
-      /*if ( model_type === 'spatialerror' || model_type === 'spatiallag') {
-        $('input:radio[name=method]').prop('disabled', false);
-        $('input:radio[value=gmm]').prop('checked', true);
-      }*/
-    });
-
-    $( "#dialog-preference" ).dialog({
-      height: 400,
-      width: 540,
-      autoOpen: false,
-      modal: true,
-      buttons: {
-        "Restore Defaults": function() {
-          $( this ).dialog( "close" );
-        },
-        Cancel: function() {
-          $( this ).dialog( "close" );
-        },
-        "Save": function() {
-          $( this ).dialog( "close" );
-        },
-      }
-    });
-    var options = {
-      valueNames: ['name']
-    };
-    var varList = new List('vars', options);
-
-    var GetValsFromObjs = function(objs) {
-      var vals = [];
-      objs.each(function(i, obj){
-        vals.push($(obj).text());
-      });
-      return vals;
-    };
-
-    $( "#dialog" ).dialog( "option", "width", 900 );
-    $( "#tabs" ).tabs();
-
-    $( "#first" ).button({
-      icons: {
-        primary: "ui-icon-folder-open"
-      }
-    });
-    $( "#save_btn" ).button({
-      icons: {
-        primary: "ui-icon-disk"
-      }
-    });
-    $( "#sec" ).button({
-      icons: {
-        primary: "ui-icon-)circle-close"
-      }
-    });
-    $( "#btn_preference" ).button({
-      icons: {
-        primary: "ui-icon-gear",
-        secondary: "ui-icon-triangle-1-s"
-      }
-    }).click(function(){
-      $('#dialog-preference').dialog('open');
-    });
-
-    $( "#btn_create_w" ).button({
-      icons: {
-        primary: "ui-icon-plus",
-      }
-    }).click(function(){
-      $('#dialog-weights').dialog('open');
-    });
-
-    $( "#btn_run" ).button({
-      icons: {
-        primary: "ui-icon-circle-triangle-e",
-      },
-    }).click(function(){
-      var sel_model_type = $('input:radio[name=model_type]:checked').val();
-      var sel_method = $('input:radio[name=method]:checked').val();
-      var sel_stderror = GetValsFromObjs($('input:checkbox[name=stderror]:checked'));
-      // y, x, w, 
-      var x_vals = GetValsFromObjs($('#x_box li'));
-      var y_vals = GetValsFromObjs($('#y_box li'));
-      var ye_vals = GetValsFromObjs($('ye_box li'));
-      var inst_vals = GetValsFromObjs($('inst_box li'));
-      var r_vals = GetValsFromObjs($('r_box li'));
-      var t_vals = GetValsFromObjs($('t_box li'));
-      // run model
-      console.log("run", sel_model_type, sel_method, sel_stderror);
-      //$.post("", {}
-    });
-  });
-  </script>
-</head>
-<body>
- 
-<div id="dialog" title="Spatial Regression Dialog"> 
   <button id="btn_create_w">Create Weights</button> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <button id="first">Open Model</button>
   <button id="save_btn">Save Model</button>
@@ -346,6 +203,144 @@
   </table> 
 </div>
 
+<script>
+$(function() {
+  $( "#y_catalog" ).accordion();
+  $( "#x_catalog" ).accordion();
+  $( "#vars ul li" ).draggable({
+    helper: "clone"
+  });
+
+  $( ".drop_box ol li" ).dblclick(function() {
+    console.log($(this));
+  });
+
+  $( ".drop_box ol" ).droppable({
+    activeClass: "ui-state-default",
+    hoverClass: "ui-state-hover",
+    accept: ":not(.ui-sortable-helper)",
+    drop: function( event, ui ) {
+      $( this ).find( ".placeholder" ).remove();
+      // customized behavior for different dropbox
+      console.log($(this).closest("div").attr("id"),$(this).children().length);
+      var box_id = $(this).closest("div").attr("id");
+      var n_items = $(this).children().length;
+      if ( n_items > 0) {
+        if (box_id === 'y_box'||box_id==='ye_box'||box_id==='r_box') 
+          return; 
+      }
+      // drop gragged item
+      $( "<li></li>" ).text( ui.draggable.text() ).appendTo( this ).dblclick(function(){
+        $(this).remove();
+        ui.draggable.show();
+      });
+      ui.draggable.hide();
+    }
+  }).sortable({
+    items: "li:not(.placeholder)",
+    sort: function() {
+      // gets added unintentionally by droppable interacting with sortable
+      // using connectWithSortable fixes this, but doesn't allow you to customize active/hoverClass options
+      $( this ).removeClass( "ui-state-default" );
+    }
+  });
+  $( "#dialog" ).dialog({dialogClass: "dialogWithDropShadow"});
+
+  // model type
+  $('input:radio[name=model_type]').click( function() {
+    var model_type = $(this).val();
+    /*if ( model_type === 'spatialerror' || model_type === 'spatiallag') {
+      $('input:radio[name=method]').prop('disabled', false);
+      $('input:radio[value=gmm]').prop('checked', true);
+    }*/
+  });
+
+  $( "#dialog-preference" ).dialog({
+    height: 400,
+    width: 540,
+    autoOpen: false,
+    modal: true,
+    buttons: {
+      "Restore Defaults": function() {
+        $( this ).dialog( "close" );
+      },
+      Cancel: function() {
+        $( this ).dialog( "close" );
+      },
+      "Save": function() {
+        $( this ).dialog( "close" );
+      },
+    }
+  });
+  var options = {
+    valueNames: ['name']
+  };
+  var varList = new List('vars', options);
+
+  var GetValsFromObjs = function(objs) {
+    var vals = [];
+    objs.each(function(i, obj){
+      vals.push($(obj).text());
+    });
+    return vals;
+  };
+
+  $( "#dialog" ).dialog( "option", "width", 900 );
+  $( "#tabs" ).tabs();
+
+  $( "#first" ).button({
+    icons: {
+      primary: "ui-icon-folder-open"
+    }
+  });
+  $( "#save_btn" ).button({
+    icons: {
+      primary: "ui-icon-disk"
+    }
+  });
+  $( "#sec" ).button({
+    icons: {
+      primary: "ui-icon-)circle-close"
+    }
+  });
+  $( "#btn_preference" ).button({
+    icons: {
+      primary: "ui-icon-gear",
+      secondary: "ui-icon-triangle-1-s"
+    }
+  }).click(function(){
+    $('#dialog-preference').dialog('open');
+  });
+
+  $( "#btn_create_w" ).button({
+    icons: {
+      primary: "ui-icon-plus",
+    }
+  }).click(function(){
+    $('#dialog-weights').dialog('open');
+  });
+
+  $( "#btn_run" ).button({
+    icons: {
+      primary: "ui-icon-circle-triangle-e",
+    },
+  }).click(function(){
+    var sel_model_type = $('input:radio[name=model_type]:checked').val();
+    var sel_method = $('input:radio[name=method]:checked').val();
+    var sel_stderror = GetValsFromObjs($('input:checkbox[name=stderror]:checked'));
+    // y, x, w, 
+    var x_vals = GetValsFromObjs($('#x_box li'));
+    var y_vals = GetValsFromObjs($('#y_box li'));
+    var ye_vals = GetValsFromObjs($('ye_box li'));
+    var inst_vals = GetValsFromObjs($('inst_box li'));
+    var r_vals = GetValsFromObjs($('r_box li'));
+    var t_vals = GetValsFromObjs($('t_box li'));
+    // run model
+    console.log("run", sel_model_type, sel_method, sel_stderror);
+    //$.post("", {}
+  });
+});
+</script>
 
 <div id="dialog-preference" title="Preference">
   <div id="tabs">

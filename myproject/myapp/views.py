@@ -6,12 +6,13 @@ from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
-from myproject.myapp.models import Document, Weights
+from myproject.myapp.models import Document, Weights, Geodata
 from myproject.myapp.forms import DocumentForm
 
 import json
 from hashlib import md5
 from pysal import rook_from_shapefile as rook
+import GeoDB
 
 def login(request):
     pass 
@@ -76,7 +77,11 @@ def upload(request):
                 ["ogr2ogr","-append",settings.GEODATA_PATH,shp_path,"-nln",layeruuid])
             if rtn != 0:
                 return HttpResponse("ERROR")
-            return HttpResponse('{"layername":layeruuid}', content_type="application/json")
+            # save to Geodata table
+            meta_data = GeoDB.GetMetaData(layeruuid)
+            new_geodata = Geodata(uuid=layeruuid, userid=userid, origfilename=shp_name, n=meta_data['n'], geotype=str(meta_data['geom_type']), bbox=str(meta_data['bbox']), fields=json.dumps(meta_data['fields']))
+            new_geodata.save()
+            return HttpResponse('{"layername":%s}'%layeruuid, content_type="application/json")
 
         return HttpResponse("OK")
 

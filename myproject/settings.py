@@ -3,7 +3,6 @@
 
 
 ### CUSTOM SETTINGS ###
-# Akseli Palén 2013-01-30
 #
 # PROJECT_ROOT
 #   Absolute path to the directory of this file (settings.py).
