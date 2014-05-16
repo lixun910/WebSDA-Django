@@ -10,7 +10,7 @@
 		{% if documents %}
 			<ul>
 			{% for document in documents %}
-				<li>{{document.uuid }}<a href="{{ document.docfile.url }}">{{ document.docfile.name }}</a></li>
+				<li>{{document.uuid }}{{document.filename}}<a href="{{ document.docfile.url }}">{{ document.docfile.name }}</a></li>
 			{% endfor %}
 			</ul>
 		{% else %}

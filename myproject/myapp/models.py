@@ -6,7 +6,7 @@ class Document(models.Model):
     uuid = models.CharField(max_length=64, unique=True, db_index=True, primary_key=True)
     userid = models.CharField(max_length=80)
     filename = models.CharField(max_length=255)
-    docfile = models.FileField(upload_to='documents/%Y/%m/%d')
+    docfile = models.FileField(upload_to='temp')
 
 class Geodata(models.Model):
     # unique id, that maps to layer name in a sqlite3 spatial database

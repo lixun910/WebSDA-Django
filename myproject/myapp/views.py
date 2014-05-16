@@ -14,11 +14,11 @@ from hashlib import md5
 from pysal import rook_from_shapefile as rook
 
 def login(request):
-  
+    pass 
 
 def main(request):
     # check user login
-    userid = request.session.get('userid', False):
+    userid = request.session.get('userid', False)
     if not userid:
         return HttpResponseRedirect('/login/') 
 
@@ -30,7 +30,60 @@ def main(request):
         {'userid': userid, 'geodata': geodata},
         context_instance=RequestContext(request)
     )
-    
+   
+def upload(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect('/login/') 
+    import subprocess
+    if request.method == 'POST': 
+        # Get data from form
+        filelist = request.FILES.getlist('docfile')
+        filenames = []
+        fileurls = []
+        layeruuid = ""
+        print filelist
+        # save all files
+        for docfile in filelist:
+            filename = str(docfile)
+            filenames.append(filename)
+            shpuuid =  md5(userid+filename).hexdigest()
+            if filename[-4:] in [".shp",".json",".geojson"]:
+                layeruuid = shpuuid
+            newdoc = Document(uuid = shpuuid, userid = userid,filename=filename, docfile = docfile)
+            newdoc.save()
+            fileurls.append(newdoc.docfile.url)
+
+        # move files to sqlite db
+        if len(filenames) == 0:
+            return HttpResponse("ERROR")
+        elif len(filenames) == 1:
+            pass 
+        elif len(filenames) == 3:
+            # one time shp/dbf/shx  
+            shp_name = ""
+            dbf_name = ""
+            shx_name = ""
+            for name in filenames:
+                if name.endswith(".shp"): shp_name = name
+                elif name.endswith(".dbf"): dbf_name = name
+                elif name.endswith(".shx"): shx_name = name
+            if not shp_name and not dbf_name and not shx_name:
+                return HttpResponse("ERROR")
+            if layeruuid == "": layeruuid = md5(userid+shp_name).hexdigest()
+            shp_path = settings.PROJECT_ROOT + fileurls[0][:-3] + "shp"
+            rtn = subprocess.check_call(\
+                ["ogr2ogr","-append",settings.GEODATA_PATH,shp_path,"-nln",layeruuid])
+            if rtn != 0:
+                return HttpResponse("ERROR")
+            return HttpResponse('{"layername":layeruuid}', content_type="application/json")
+
+        return HttpResponse("OK")
+
+    elif request.method == 'GET':
+        # Get data from dropbox or other links
+        return HttpResponse("OK")
+   
 def list(request):
     # Handle file upload
     if request.method == 'POST' and request.session.get('userid', False):
@@ -38,7 +91,7 @@ def list(request):
         if form.is_valid():
             docfile = request.FILES['docfile']
             shpfilename = str(docfile)
-            userid = 'test'
+            userid = 'test1'
             shpuuid =  md5(userid+shpfilename).hexdigest()
             # if it's a zip file, unzip it, and get real file from it
             # if .shp file already there, there is no need to write db 
@@ -99,7 +152,7 @@ def create_weights(request):
         return HttpResponse("ERROR")
 
     # todo: remove 
-    request.session['userid'] = 'test'
+    request.session['userid'] = 'test1'
     request.session['shpfilename'] = 'NAT.shp'
     return HttpResponse("ERROR")
 

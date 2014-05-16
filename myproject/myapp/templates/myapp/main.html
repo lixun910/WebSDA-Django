@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Web Spatial Data Analysis.app</title>
 <style>
-.canvas {
+canvas {
     stroke: #000;
 }
 path {
@@ -35,15 +35,22 @@ div {
     display: block;
 }
 #header {
-    height: 80px;
-    margin-bottom: 20px;
-    padding-top: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #eee;
+  height: 80px;
+  margin-bottom: 20px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
 }
 #header .container {
-    width: 90%;
-    margin: 0 auto;
+  width: 90%;
+  height: 90px;
+  margin: 0 auto;
+}
+#header .logo {
+  width: 480px;
+}
+#header .logo  img{
+  margin: 18px 0 0 -60px;
 }
 #header .container h1 {
     color: #666;
@@ -51,7 +58,9 @@ div {
     position: relative;
     float: left;
 }
-
+body {
+  text-align: center;
+}
 // Drag&Drop file box
 #dragdrop_div {
     width: 100px;
@@ -95,7 +104,15 @@ div {
     height: auto;
     width: 0;
 }
-
+.check_file {
+  background-image: url("/media/img/checkmark.png");
+  background-repeat:no-repeat;
+  background-position:right; 
+}
+.uncheck_file {
+  color: red;
+  font-weight: bold;
+}
 #preview {
     width: 90%;
     height: 450px;
@@ -130,24 +147,36 @@ div {
     background-repeat: no-repeat;
     background-position: center;
 }
-#btnShowMap {
-    background-image: url(img/world.png);
+#btnOpenData{
+    background-image: url(/media/img/add-file.png);
+}
+#btnSave {
+    background-image: url(/media/img/ToolBar-save-project_disabled.png);
 }
 #btnShowTable {
-    background-image: url(img/table.png);
+    background-image: url(/media/img/ToolBar-table.png);
+}
+#btnCreateWeights {
+    background-image: url(/media/img/ToolBar-new-weights.png);
+}
+#btnSpatialRegression {
+    background-image: url(/media/img/ToolBar-regression.png);
 }
 #btnAbout {
-    background-image: url(img/about.png);
+    background-image: url(/media/img/about.png);
 }
 </style>
-<link rel="stylesheet" href="csslider.css" />
-<script src="jquery.min.js"></script>
-<script src="d3.v3.min.js"></script>
-<script src="inflate.js"></script>
-<script src="zip/zip.js"></script>
-<script src="indexeddb.js"></script>
-<script src="utils.js"></script>
-<script src="jsonmap.js"></script>
+<link rel="stylesheet" href="/media/css/csslider.css" />
+<script src="/media/js/jquery.min.js"></script>
+<script src="/media/js/d3.v3.min.js"></script>
+<script src="/media/js/inflate.js"></script>
+<script src="/media/js/zip/zip.js"></script>
+<script src="/media/stream.js"></script>
+<script src="/media/shapefile.js"></script>
+<script src="/media/dbf.js"></script>
+<script src="/media/js/indexeddb.js"></script>
+<script src="/media/js/utils.js"></script>
+<script src="/media/js/jsonmap.js"></script>
 <script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="50dk6qp6nc2fcxs"></script>
 <script type="text/javascript">
  	
@@ -171,11 +200,13 @@ function CreateMapContainer(jsonFilePath) {
 
 var w = 600;
 var h = 400;
-function ShowJsonMap(jsonFilePath) {
+function ShowJsonMap(jsonFilePath, content) {
+    //console.log(content);
     var containerID = CreateMapContainer(jsonFilePath);
 
     //Load in GeoJSON data
     var createJsonMap = function(json) {
+        /*
         if (localStorage.getItem(jsonFilePath) == null) {
             localStorage.setItem(jsonFilePath, 1);
             // store the content to indexedDB
@@ -185,14 +216,13 @@ function ShowJsonMap(jsonFilePath) {
             var filecontent = JSON.stringify(json);
             addFile(fileid, filename, fileurl, filecontent);
         }
+        */
         console.log("create", jsonFilePath);
         //Create SVG element
-        var svg = d3.select('#' + containerID)
-            .append("svg")
+        var canvas = d3.select('#' + containerID)
+            .append("canvas")
             .attr("width", w)
-            .attr("height", h)
-            .attr("class", "canvas");
-
+            .attr("height", h);
 
         var minX = Number.POSITIVE_INFINITY,
             maxX = Number.NEGATIVE_INFINITY,
@@ -236,7 +266,32 @@ function ShowJsonMap(jsonFilePath) {
                     this.stream.point(scaleX(x)+offsetW, scaleY(y)+offsetH); 
                 }});
         }
-        var path = d3.geo.path().projection(matrix(-1, 0, 0, 1, 0, 0));
+
+        var context = canvas.node().getContext("2d");
+        var path = d3.geo.path().projection(matrix(-1, 0, 0, 1, 0, 0)).context(context);
+
+        context.strokeStyle = "#cccccc";
+        context.fillStyle = "#ffffff";
+
+        json.features.forEach(function(feat,i) {
+            feat.geometry.coordinates.forEach(function(coords,j) {
+                context.beginPath();
+                coords.forEach(function(xy,k){
+                    x = xy[0], y = xy[1];
+                    x = scaleX(x)+offsetW;
+                    y = scaleY(y)+offsetH;
+                    if (k === 0) {
+                        context.moveTo(x,y);
+                    } else {
+                        context.lineTo(x,y);
+                    }
+                });
+                context.closePath();
+                context.stroke();
+            });
+        });
+        //context.fill();
+        /*
         var polys = svg.append("g")
             .selectAll("path")
             .data(json.features)
@@ -260,8 +315,12 @@ function ShowJsonMap(jsonFilePath) {
                 var msg = {'SELECTED':[]};
                 socket.send(JSON.stringify(msg));
             });
+        */
     };
-    if (localStorage.getItem(jsonFilePath) == null) {
+    if (content!=undefined) {
+        createJsonMap(content);
+    } else{
+    
         console.log("load from raw data");
         var suffix = getSuffix(jsonFilePath);
         if (suffix === "json" || suffix === "geojson") {
@@ -272,8 +331,9 @@ function ShowJsonMap(jsonFilePath) {
                 createJsonMap(jsonContent);
             });
         }
+    }
 
-    } else {
+    /*} else {
         console.log("load from cache:");
         queryFile(jsonFilePath, function(e) {
             if (e.target.result) {
@@ -285,7 +345,7 @@ function ShowJsonMap(jsonFilePath) {
                 console.log("load from cache error.");
             }
         });
-    }
+    }*/
 } // end function ShowJsonMap()
 
 
@@ -297,90 +357,83 @@ var db;
 ///////////////////////////////////////////////////////////////
 $(document).ready(function() {
 
-    //var jsonname = getParameterByName("json");
-    //if (!jsonname) {
-    //    return;
-    //}
-    var pageid = guid(); 
-    
-    //////////////////////////////////////////////////////////////
-    // WebSocket Server Communications
-    //////////////////////////////////////////////////////////////
-    // create websocket
-    if (! ("WebSocket" in window)) WebSocket = MozWebSocket; // firefox
-    socket = new WebSocket("ws://localhost:9000");
+  function getCookie(name) {
+     var cookieValue = null;
+     if (document.cookie && document.cookie != '') {
+       var cookies = document.cookie.split(';');
+       for (var i = 0; i < cookies.length; i++) {
+         var cookie = jQuery.trim(cookies[i]);
+         // Does this cookie string begin with the name we want?
+         if (cookie.substring(0, name.length + 1) == (name + '=')) {
+             cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+             break;
+         }
+       }
+     }
+    return cookieValue;
+  }
+  //////////////////////////////////////////////////////////////
+  // WebSocket Server Communications
+  //////////////////////////////////////////////////////////////
+  // create websocket
+  if (! ("WebSocket" in window)) WebSocket = MozWebSocket; // firefox
+  socket = new WebSocket("ws://localhost:9000");
 
-    // open the socket
-    socket.onopen = function(event) {
-        socket.send('{connected:'+ pageid + '}');
+  // open the socket
+  socket.onopen = function(event) {
+      socket.send('{connected:'+ pageid + '}');
 
-        // show server response
-        socket.onmessage = function(e) {
-            // handle different messages
-            try {
-                data = JSON.parse(e.data);
-                if ( 'SELECTED' in data ) {
-                    select_ids = data['SELECTED'];
-                    d3.selectAll("path")
-                        .attr("class", "unselected");
-                    d3.selectAll("path")
-                        .each(function(d,i){ 
-                        if (jQuery.inArray(d.properties.FIPS, select_ids) > -1) {
-                            //if (d.id in select_ids) {
-                            d3.select(this).attr("class", "selected");
-                        }
-                    });
-                }
-            } catch (err) {
-                console.error("Parsing error:", err);            
-            }
-        }
-    }
+      // show server response
+      socket.onmessage = function(e) {
+          // handle different messages
+          try {
+              data = JSON.parse(e.data);
+              if ( 'SELECTED' in data ) {
+                  select_ids = data['SELECTED'];
+                  d3.selectAll("path")
+                      .attr("class", "unselected");
+                  d3.selectAll("path")
+                      .each(function(d,i){ 
+                      if (jQuery.inArray(d.properties.FIPS, select_ids) > -1) {
+                          //if (d.id in select_ids) {
+                          d3.select(this).attr("class", "selected");
+                      }
+                  });
+              }
+          } catch (err) {
+              console.error("Parsing error:", err);            
+          }
+      }
+  }
 
-    //////////////////////////////////////////////////////////////
-    // Dropbox Plugin
-    //////////////////////////////////////////////////////////////
-    var dropboxOptions = {
-
-        // Required. Called when a user selects an item in the Chooser.
-        success: function(files) {
-            //alert("Here's the file link: " + files[0].link)
-            var fileLink = files[0].link;
-            ShowJsonMap(fileLink);
-        },
-
-        // Optional. Called when the user closes the dialog without selecting a file
-        // and does not include any parameters.
-        cancel: function() {
-            $('#progressCont').hide();
-        },
-
-        // Optional. "preview" (default) is a preview link to the document for sharing,
-        // "direct" is an expiring link to download the contents of the file. For more
-        // information about link types, see Link types below.
-        linkType: "direct", // or "direct"
-
-        // Optional. A value of false (default) limits selection to a single file, while
-        // true enables multiple file selection.
-        multiselect: false, // or true
-
-        // Optional. This is a list of file extensions. If specified, the user will
-        // only be able to select files with these extensions. You may also specify
-        // file types, such as "video" or "images" in the list. For more information,
-        // see File types below. By default, all extensions are allowed.
-        extensions: ['.json', '.geojson', '.zip'],
-    };
-
-    var button = Dropbox.createChooseButton(dropboxOptions);
-    document.getElementById("dropbox_div").appendChild(button);
-
-    $('#dropbox_div').click(function() {
-    });
+  //////////////////////////////////////////////////////////////
+  // Dropbox Plugin
+  //////////////////////////////////////////////////////////////
+  var dropboxOptions = {
+      // Required. Called when a user selects an item in the Chooser.
+      success: function(files) {
+          //alert("Here's the file link: " + files[0].link)
+          var fileLink = files[0].link;
+          ShowJsonMap(fileLink);
+      },
+      cancel: function() {
+          $('#progressCont').hide();
+      },
+      linkType: "direct", // or "preview"
+      // Optional. A value of false (default) limits selection to a single file, while
+      // true enables multiple file selection.
+      multiselect: false, // or true
+      extensions: ['.json', '.geojson', '.zip', '.shp','.shx','.dbf','.prj'],
+  };
+  var button = Dropbox.createChooseButton(dropboxOptions);
+  $("#dropbox_div").append(button);
+  $('#dropbox_div').click(function() {});
 
 
-    //////////////////////////////////////////////////////////////
-    // DragDrop Plugin
-    //////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////
+  // DragDrop Plugin
+  //////////////////////////////////////////////////////////////
+
   var reader;
   var progress = document.querySelector('.percent');
 
@@ -395,7 +448,32 @@ $(document).ready(function() {
       }
     }
   }
+  function checkShpFileComplete(filename) {
+    var suffix = getSuffix(filename);
+    if (suffix === 'geojson' || suffix === 'json') {
+      localStorage['isFileComplete'] = true;  
+      return true;
 
+    } else if (suffix === 'shp' || suffix === 'dbf' || suffix === 'shx') {
+      shpfilename = getName(filename);
+      shp_exts = ['.shp','.dbf','.shx'];
+      lbl_ids = ['#lbl-drop-shp', '#lbl-drop-dbf', '#lbl-drop-shx'];
+      var flag = true;
+      for ( var i=0 ; i < shp_exts.length; i++) {
+        if (localStorage.getItem(shpfilename + shp_exts[i]) == undefined) {
+          $(lbl_ids[i]).addClass("uncheck_file");
+          flag = false;
+        } else {
+          $(lbl_ids[i]).removeClass("uncheck_file").addClass("check_file");
+        }
+      }
+      if (flag == true) {
+        localStorage['isFileComplete'] = true;
+        return true;
+      }
+    }
+    return false;
+  }
   function handleFileSelect(evt) {
     $("#"+evt.target.id).css("color", "#bbb");
     evt.stopPropagation();
@@ -405,49 +483,52 @@ $(document).ready(function() {
     progress.style.width = '0%';
     progress.textContent = '0%';
 
+    var formData = new FormData();
     var files = evt.dataTransfer.files; // FileList object.
-    var f = files[0];
-    console.log(f);
-    //f.name, f.size
-    var fileurl = "local://" + f.name + f.size;
-    queryFile(fileurl, function(e) {
-      if (e.target.result) {
-        ShowJsonMap(fileurl);
-      } else {
+    $.each(files, function(i, f) {
+      console.log(f, f.name, f.size)
+      formData.append('docfile', f, f.name);
+      var fileurl = "local://" + f.name + f.size;
+      var suffix = getSuffix(f.name);
+      // draw geometries directly
+      if ( suffix == 'shp' ) {
+        var opts = { shp: f};
+        new Shapefile(opts, function(content){
+          var json = content.geojson;
+          ShowJsonMap(fileurl, json);
+        }); 
+      } else if ( suffix === 'json' || suffix === 'geojson' ) {
         var reader = new FileReader();
-   
-        reader.onprogress = updateProgress;
-        reader.onabort = function(e) {
-          console.log('File read cancelled');
-        }; 
+
+        //reader.onprogress = updateProgress;
+        reader.onabort = function(e) { console.log('File read cancelled');}; 
         reader.onloadstart = function(e) {
-          document.getElementById('progress_bar').className = 'loading';
         };
-            
         reader.onloadend =  function(evt) {
+          if (evt.target.readyState == FileReader.DONE) {
+            var data = evt.target.result;
+            ShowJsonMap(fileurl, JSON.parse(data));
+          }
+        };
+        reader.readAsText(f);
+      }
+      localStorage[f.name] = true;
+    });
+    checkShpFileComplete(files[0].name);
+    // upload files to server
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/myapp/upload/');
+    xhr.onload = function() {
+        console.log("upload return:",this.responseText);
         // Ensure that the progress bar displays 100% at the end.
         progress.style.width = '100%';
         progress.textContent = '100%';
         setTimeout("document.getElementById('progress_bar').className='';", 5000);
-        if (evt.target.readyState == FileReader.DONE) {
-          var data = evt.target.result;
-
-          var fileurl = "local://" + f.name + f.size;
-          // store the content to indexedDB
-          var filename = f.name;
-          var fileid = f.name + f.size;
-          var filecontent = data;
-          addFile(fileid, filename, fileurl, filecontent, function(){
-            localStorage.setItem(fileurl, 1);
-            ShowJsonMap(fileurl);
-            //var jsonContent = JSON.parse(data);
-          });
-        }
-        };
-            
-        reader.readAsText(f);
-      }
-    });
+    }; 
+    xhr.upload.onprogress = updateProgress;
+    xhr.send(formData);
+    document.getElementById('progress_bar').className = 'loading';
   }
 
   function handleDragOver(evt) {
@@ -467,55 +548,96 @@ $(document).ready(function() {
   dropZone.addEventListener('dragleave', handleDragOut, false);
   dropZone.addEventListener('drop', handleFileSelect, false);
 
-    //////////////////////////////////////////////////////////////
-    // Buttons Plugin
-    //////////////////////////////////////////////////////////////
-    $('.block_button').mouseenter(function(){
-        $(this).css("opacity",1.0);
-    });
-    $('.block_button').mouseleave(function(){
-        $(this).css("opacity",0.5);
-    });
-
-    $('#btnShowMap').click(function(){
-        $('[name="slides"]').each(function(i, obj){
-            if ( obj.checked === true) {
-                var map_id = "map"+ obj.id.slice(-1);
-                var map_url = localStorage[map_id];
-                if (map_url) {
-                    console.log("popup");
-                    window.open("template_json_map.html?json="+map_url,"");
-                }
-                return;
-            }
-        });
-    });
-    
+  //////////////////////////////////////////////////////////////
+  // Buttons 
+  //////////////////////////////////////////////////////////////
+  $('#btnOpenData').css("opacity",1);
+  $('#btnAbout').css("opacity",1);
+  $('.block_button').mouseenter(function(){
+    if ($(this).attr("id") == 'btnOpenData' || 
+        $(this).attr("id") == 'btnAbout' || 
+        localStorage.getItem('current_geodata') != null) {
+      $(this).css("border","1px solid #333");
+    }
+  });
+  $('.block_button').mouseleave(function(){
+    if ($(this).attr("id") == 'btnOpenData' || 
+        $(this).attr("id") == 'btnAbout' || 
+        localStorage.getItem('current_geodata') != null) {
+      $(this).css("border","0px solid #333");
+    }
+  });
+  $('#file_div').hide();
+  $('#btnOpenData').click(function(){
+    $('#file_div').slideToggle("slow");  
+  });
+  $('#btnShowMap').click(function(){
+      $('[name="slides"]').each(function(i, obj){
+          if ( obj.checked === true) {
+              var map_id = "map"+ obj.id.slice(-1);
+              var map_url = localStorage[map_id];
+              if (map_url) {
+                  console.log("popup");
+                  window.open("template_json_map.html?json="+map_url,"");
+              }
+              return;
+          }
+      });
+  });
 });
-
-
-//localStorage.selectedid = [1,2];
 </script>
 </head>
+
 <body>
 <div id="header"> 
     <div class="container">
-        <h1>'Spatial Data Analysis'.app</h1>
+        <h1>'Spatial Data Analysis'.</h1>
+        <div class="logo"><img src="/media/img/cloud.png"/></div>
     </div>
 </div>
-<div id="main_div" style="width: 80%;margin: 0 auto;">
-    <div id="file_choose_div" style="width: 100%; margin: 0 auto;">
-        <div id="dropbox_div"></div>
-        <div id="dragdrop_div" style="margin-left: 350px;">
-            <div id="drop_zone">Drop files here</div>
-            <div id="progress_bar"><div class="percent">0%</div></div>
-        </div>
-    </div>
+<div id="toolbar">
+    <div style="clear: left;"></div>
+    <table class="toolbar_tbl">
+        <tr>
+           <td><div class="block_button" id="btnOpenData"></div></td> 
+           <td><div class="block_button" id="btnSave"></div></td> 
+           <td><div class="block_button" id="btnShowTable"></div></td> 
+           <td><div class="block_button" id="btnCreateWeights"></div></td> 
+           <td><div class="block_button" id="btnHistogram"></div></td> 
+           <td><div class="block_button" id="btnScatterPlot"></div></td> 
+           <td><div class="block_button"></div></td> 
+           <td><div class="block_button"></div></td> 
+           <td><div class="block_button"></div></td> 
+           <td><div class="block_button"></div></td> 
+           <td><div class="block_button"></div></td> 
+           <td><div class="block_button"></div></td> 
+           <td><div class="block_button"></div></td> 
+           <td><div class="block_button"></div></td> 
+           <td><div class="block_button"></div></td> 
+           <td><div class="block_button"></div></td> 
+           <td><div class="block_button"  id="btnSpatialRegression"></div></td> 
+           <td><div class="block_button" id="btnAbout"></div></td> 
+        </tr>
+    </table>
 </div>
-<script>
-</script>
+<div id="file_div"> 
+  <div id="main_div" style="width: 80%;margin: 0 auto;">
+      <div id="file_choose_div" style="width: 100%; margin: 0 auto;">
+          <div id="dropbox_div"></div>
+          <div id="dragdrop_div" style="margin-left: 350px;">
+              <div id="drop_zone">Drop files here
+                <p style="font-size:12px;"><label>*.json</label>&nbsp;&nbsp;or &nbsp;&nbsp;
+                <label  id="lbl-drop-shp">*.shp</label>&nbsp;<label id="lbl-drop-dbf">*.dbf</label>
+                &nbsp;<label id="lbl-drop-shx">.shx</label>&nbsp;&nbsp;or &nbsp;&nbsp;
+                <label>*.zip</label></p>
+              </div>
+              <div id="progress_bar"><div class="percent">0%</div></div>
+          </div>
+      </div>
+  </div>
+</div>
 
-<div id="preview">
+<div id="preview"> 
 <div id="mapslider" class="csslider">
     <input type="radio" name="slides" id="slides_1" checked />
     <input type="radio" name="slides" id="slides_2" />
@@ -530,30 +652,6 @@ $(document).ready(function() {
         </div>
     </div>
 </div>
-</div>
-<div id="toolbar">
-    <div style="clear: left;"></div>
-    <table class="toolbar_tbl">
-        <tr>
-           <td><div class="block_button" id="btnShowMap"></div></td> 
-           <td><div class="block_button" id="btnShowTable"></div></td> 
-           <td><div class="block_button" id="bntWeights"></div></td> 
-           <td><div class="block_button" id="btnHistogram"></div></td> 
-           <td><div class="block_button" id="btnScatterPlot"></div></td> 
-           <td><div class="block_button"></div></td> 
-           <td><div class="block_button"></div></td> 
-           <td><div class="block_button"></div></td> 
-           <td><div class="block_button"></div></td> 
-           <td><div class="block_button"></div></td> 
-           <td><div class="block_button"></div></td> 
-           <td><div class="block_button"></div></td> 
-           <td><div class="block_button"></div></td> 
-           <td><div class="block_button"></div></td> 
-           <td><div class="block_button"></div></td> 
-           <td><div class="block_button"></div></td> 
-           <td><div class="block_button" id="btnAbout"></div></td> 
-        </tr>
-    </table>
 </div>
 <script>
 </script>
