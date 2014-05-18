@@ -9,20 +9,25 @@ from django.conf import settings
 from myproject.myapp.models import Document, Weights, Geodata
 from myproject.myapp.forms import DocumentForm
 
-import json
+import json, time
+import multiprocessing as mp
 from hashlib import md5
+from pysal import w_union, higher_order
 from pysal import rook_from_shapefile as rook
+from pysal import queen_from_shapefile as queen
 import GeoDB
 
 def login(request):
     pass 
 
+def test(request):
+    request.session['userid'] = 'test1'
+    
 def main(request):
     # check user login
     userid = request.session.get('userid', False)
     if not userid:
-        return HttpResponseRedirect('/login/') 
-
+        return HttpResponseRedirect('/myapp/login/') 
 
     geodata = Geodata.objects.all().filter( userid=userid )
     # render main page with userid, shps/tables, weights
@@ -31,18 +36,33 @@ def main(request):
         {'userid': userid, 'geodata': geodata},
         context_instance=RequestContext(request)
     )
-   
+
+def get_fields(request):
+    userid = request.session.get('userid', False)
+    print userid
+    if not userid:
+        return HttpResponseRedirect('/myapp/login/') 
+    print request
+    if request.method == 'GET': 
+        layer_uuid = request.GET.get("layer_uuid","")
+        print layer_uuid
+        geodata = Geodata.objects.get(uuid = layer_uuid)
+        if geodata:
+            return HttpResponse(geodata.fields, content_type="application/json")
+    return HttpResponse("ERROR")
+
+
+
 def upload(request):
     userid = request.session.get('userid', False)
     if not userid:
-        return HttpResponseRedirect('/login/') 
-    import subprocess
+        return HttpResponseRedirect('/myapp/login/') 
     if request.method == 'POST': 
         # Get data from form
         filelist = request.FILES.getlist('docfile')
         filenames = []
         fileurls = []
-        layeruuid = ""
+        layer_uuid = ""
         print filelist
         # save all files
         for docfile in filelist:
@@ -50,7 +70,7 @@ def upload(request):
             filenames.append(filename)
             shpuuid =  md5(userid+filename).hexdigest()
             if filename[-4:] in [".shp",".json",".geojson"]:
-                layeruuid = shpuuid
+                layer_uuid = shpuuid
             newdoc = Document(uuid = shpuuid, userid = userid,filename=filename, docfile = docfile)
             newdoc.save()
             fileurls.append(newdoc.docfile.url)
@@ -71,24 +91,24 @@ def upload(request):
                 elif name.endswith(".shx"): shx_name = name
             if not shp_name and not dbf_name and not shx_name:
                 return HttpResponse("ERROR")
-            if layeruuid == "": layeruuid = md5(userid+shp_name).hexdigest()
+            if layer_uuid == "": layer_uuid = md5(userid+shp_name).hexdigest()
             shp_path = settings.PROJECT_ROOT + fileurls[0][:-3] + "shp"
-            rtn = subprocess.check_call(\
-                ["ogr2ogr","-append",settings.GEODATA_PATH,shp_path,"-nln",layeruuid])
-            if rtn != 0:
-                return HttpResponse("ERROR")
             # save to Geodata table
-            meta_data = GeoDB.GetMetaData(layeruuid)
-            new_geodata = Geodata(uuid=layeruuid, userid=userid, origfilename=shp_name, n=meta_data['n'], geotype=str(meta_data['geom_type']), bbox=str(meta_data['bbox']), fields=json.dumps(meta_data['fields']))
+            meta_data = GeoDB.GetMetaData(layer_uuid,"ESRI shapefile",shp_path)
+            print shp_path, meta_data
+            new_geodata = Geodata(uuid=layer_uuid, userid=userid, origfilename=shp_name, n=meta_data['n'], geotype=str(meta_data['geom_type']), bbox=str(meta_data['bbox']), fields=json.dumps(meta_data['fields']))
             new_geodata.save()
-            return HttpResponse('{"layername":%s}'%layeruuid, content_type="application/json")
+            # export to sqlite database
+            mp.Process(target=GeoDB.ExportToSqlite, args=(shp_path,layer_uuid)).start()
+
+            return HttpResponse('{"layer_uuid":"%s"}'%layer_uuid, content_type="application/json")
 
         return HttpResponse("OK")
 
     elif request.method == 'GET':
         # Get data from dropbox or other links
         return HttpResponse("OK")
-   
+
 def list(request):
     # Handle file upload
     if request.method == 'POST' and request.session.get('userid', False):
@@ -119,57 +139,81 @@ def list(request):
     )
 
 
+def get_file_url(userid, layer_uuid):
+    geodata = Geodata.objects.get(uuid=layer_uuid)
+    if geodata:
+        file_uuid = md5(geodata.userid + geodata.origfilename).hexdigest()
+        document = Document.objects.get(uuid=file_uuid)
+        if document:
+            return document.docfile.url, document.filename
+    return None
+        
 def create_weights(request):
-    if request.method == 'POST' and request.session.get('userid', False):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect('/myapp/login/') 
+    if request.method == 'POST':
         userid = request.session['userid']
-        shpfilename = request.session['shpfilename']
+        layer_uuid = request.POST.get("layer_uuid",None)
         w_id = request.POST.get("w_id", None)
         w_name = request.POST.get("w_name", None)
         w_type = request.POST.get("w_type", None)
-        cont_type = request.POST.get("cont_type", None)
-        cont_order = request.POST.get("cont_order", None)
-        cont_ilo = request.POST.get("cont_ilo", None)
-
-        print userid, shpfilename, w_id, w_name, w_type, cont_type, cont_order, cont_ilo
-        if userid and shpfilename and w_id and w_name and cont_type and cont_order and cont_ilo:
-            shpuuid =  md5(userid+shpfilename).hexdigest()
-            print shpuuid
-            result = Document.objects.filter(uuid = shpuuid)
-            print result
-            if len(result) > 0:
-              print result[0].docfile
-              shp_path = settings.MEDIA_ROOT + "/" + str(result[0].docfile)
-              print shp_path
-              w = rook(shp_path)
-              # save to database
-              wtypemeta = json.dumps({'cont_type':cont_type,'cont_order':cont_order,'cont_ilo':cont_ilo})
-              wuuid = md5(userid + shpfilename + w_name).hexdigest()
-              print w.histogram
-              histogram = str(w.histogram)
-              neighbors = json.dumps(w.neighbors)
-              weights = json.dumps(w.weights)
-              new_w_item = Weights(uuid=wuuid, userid=userid, shpfilename=shpfilename,name=w_name,\
-                n=w.n, wid=w_id, wtype=w_type, wtypemeta=wtypemeta, histogram=histogram, neighbors=neighbors,weights=weights)
-              new_w_item.save()
- 
-              return HttpResponse("OK")
+        if w_type == "contiguity":
+            cont_type = request.POST.get("cont_type", None)
+            cont_order = request.POST.get("cont_order", None)
+            cont_ilo = request.POST.get("cont_ilo", None)
+            t1 = time.time()
+            file_url, shpfilename = get_file_url(userid, layer_uuid)
+            file_url = settings.PROJECT_ROOT + file_url
+            shp_path = file_url+".shp" if file_url.endswith("json") else file_url
+            print shp_path
+            t2 = time.time()
+            print t2-t1
+            w = rook(shp_path) if cont_type == 'rook' else queen(shp_path)
+            origWeight = w
+            weight_order = int(cont_order)
+            print weight_order
+            if weight_order > 1:
+                w = higher_order(w, weight_order)
+            print cont_ilo
+            if cont_ilo == "true":
+                for order in xrange(weight_order-1,1,-1):
+                    lowerOrderW = higher_order(origWeight, order)
+                    w = w_union(w, lowerOrderW)
+                w = w_union(w, origWeight)
+            # save to database
+            t3 = time.time()
+            print t3 - t2
+            wtypemeta = json.dumps({'cont_type':cont_type,'cont_order':cont_order,'cont_ilo':cont_ilo})
+            wuuid = md5(userid + shpfilename + w_name).hexdigest()
+            histogram = str(w.histogram)
+            neighbors = json.dumps(w.neighbors)
+            weights = json.dumps(w.weights)
+            new_w_item = Weights(uuid=wuuid, userid=userid, shpfilename=shpfilename,name=w_name,n=w.n, wid=w_id, wtype=w_type, wtypemeta=wtypemeta, histogram=histogram, neighbors=neighbors,weights=weights)
+            new_w_item.save()
+            t4 = time.time()
+            print t4 - t3
+            return HttpResponse("OK")
+        elif w_type == "distance":
+            pass
+        elif w_type == "kernel":
+            pass
 
         return HttpResponse("ERROR")
-
-    # todo: remove 
-    request.session['userid'] = 'test1'
-    request.session['shpfilename'] = 'NAT.shp'
     return HttpResponse("ERROR")
 
 def get_weights_names(request):
-    if request.method == 'GET' and request.session.get('userid', False):
-        userid = request.session['userid']
-        shpfilename = request.session['shpfilename']
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect('/myapp/login/') 
+    if request.method == 'GET': 
+        layer_uuid = request.GET.get('layer_uuid','')
+        file_url, shpfilename = get_file_url(userid, layer_uuid)
         w_array = Weights.objects.filter(userid = userid).filter(shpfilename = shpfilename)
-        w_names = [w.name for w in w_array]
+        w_names = {w.name:w.uuid for w in w_array}
         json_result = json.dumps(w_names)
         return HttpResponse(json_result, content_type="application/json")
     return HttpResponse("ERROR")
-      
+
 def ols(request):
     request.POST.get("","") 

@@ -55,3 +55,10 @@ function FetchZipResource(url, onSuccess) {
     xhr.send();
 }
 
+function sortKeys(dict) {
+  var field_names = [];
+  for ( var key in fields ){
+    field_names.push(key); 
+  }
+  field_names.sort();
+}

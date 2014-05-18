@@ -217,6 +217,19 @@ function ShowJsonMap(jsonFilePath, content) {
             addFile(fileid, filename, fileurl, filecontent);
         }
         */
+    /*} else {
+        console.log("load from cache:");
+        queryFile(jsonFilePath, function(e) {
+            if (e.target.result) {
+                console.log(e.target.result);
+                jsonContent = e.target.result.filecontent;
+                jsonContent = jQuery.parseJSON(jsonContent);
+                createJsonMap(jsonContent);
+            } else {
+                console.log("load from cache error.");
+            }
+        });
+    }*/
         console.log("create", jsonFilePath);
         //Create SVG element
         var canvas = d3.select('#' + containerID)
@@ -291,31 +304,6 @@ function ShowJsonMap(jsonFilePath, content) {
             });
         });
         //context.fill();
-        /*
-        var polys = svg.append("g")
-            .selectAll("path")
-            .data(json.features)
-            .enter().append("path")
-            .attr("id", function(d,i){ return i;}) 
-            .attr("d", path);
-
-        polys.append("title")
-            .text(function(d,i){return i;});
-
-        polys 
-            .each(function(d,i){})
-            .on("mouseover", function(d){
-                d3.select(this).attr("class", "selected");
-                console.log(this.id);
-                var msg = {'SELECTED':[d.properties.FIPS]};
-                socket.send(JSON.stringify(msg));
-            })
-            .on("mouseout", function(d){
-                d3.select(this).attr("class", "unselected"); 
-                var msg = {'SELECTED':[]};
-                socket.send(JSON.stringify(msg));
-            });
-        */
     };
     if (content!=undefined) {
         createJsonMap(content);
@@ -332,20 +320,6 @@ function ShowJsonMap(jsonFilePath, content) {
             });
         }
     }
-
-    /*} else {
-        console.log("load from cache:");
-        queryFile(jsonFilePath, function(e) {
-            if (e.target.result) {
-                console.log(e.target.result);
-                jsonContent = e.target.result.filecontent;
-                jsonContent = jQuery.parseJSON(jsonContent);
-                createJsonMap(jsonContent);
-            } else {
-                console.log("load from cache error.");
-            }
-        });
-    }*/
 } // end function ShowJsonMap()
 
 
@@ -474,6 +448,61 @@ $(document).ready(function() {
     }
     return false;
   }
+  //****************************************************
+  // fill forms and controls after uploading data files
+  //****************************************************
+  function refillCombobox(kv) {
+  }
+  function sortKeys() {
+  }
+  function fillForms() {
+    var layer_uuid = localStorage.getItem('current_layer');
+    if (  layer_uuid != undefined ){
+      //-----------------------------------------------
+      // get fields information
+      //-----------------------------------------------
+      $.get("/myapp/get_fields/", {"layer_uuid": layer_uuid},function() {
+      }).done(function(fields) {
+        var field_names = [];
+        for ( var key in fields ){
+          field_names.push(key); 
+        }
+        field_names.sort();
+        // fill content for combobox: select ID for weights creation 
+        $('#sel-w-id').find('option').remove().end();
+        $.each(field_names, function(i, field_name) {
+          if ( fields[field_name] != "String" ) {
+            $('#sel-w-id').append($('<option>', {value: field_name}).text(field_name));
+          }
+        });
+        //InitAutocompCombobox('sel-w-id');
+        //$("#sel-w-id").combobox();
+        // fill content for <ul id="ul-x-variables"></ul> 
+        $('#ul-x-variables').find('li').remove().end();
+        $.each(field_names, function(i, field_name) {
+          if ( fields[field_name] != "String" ) {
+            $('#ul-x-variables').append('<li><p class="name">'+field_name+'</p></li>');
+          }
+        });
+      });
+      //-----------------------------------------------
+      // get weights name:uuid
+      //-----------------------------------------------
+      $.get("/myapp/get_weights_names/", {"layer_uuid": layer_uuid},function() {
+      }).done(function(weights) {
+        var w_names = [];
+        for ( var key in weights ){
+          w_names.push(key); 
+        }
+        w_names.sort();
+        $('#sel-model-w-files').find('option').remove().end();
+        $.each(w_names, function(i, wname) {
+          wuuid = weights[w_names];
+          $('#sel-model-w-files').append($('<option>', {value: wuuid}).text(wname));
+        });
+      });
+    }
+  }
   function handleFileSelect(evt) {
     $("#"+evt.target.id).css("color", "#bbb");
     evt.stopPropagation();
@@ -522,8 +551,11 @@ $(document).ready(function() {
     xhr.open('POST', '/myapp/upload/');
     xhr.onload = function() {
         try{
-          layerinfo = JSON.parse(this.responseText);
-          localStorage['current_layer']= layerinfo["layername"];
+          data = JSON.parse(this.responseText);
+          if ( data['layer_uuid'] != undefined) {
+            localStorage['current_layer']= data["layer_uuid"];
+            fillForms();
+          }
         } catch(e){console.log(e);}
         console.log("upload return:",this.responseText);
         // Ensure that the progress bar displays 100% at the end.
@@ -532,7 +564,7 @@ $(document).ready(function() {
         setTimeout("document.getElementById('progress_bar').className='';", 5000);
     }; 
     xhr.upload.onprogress = updateProgress;
-    //xhr.send(formData);
+    xhr.send(formData);
     document.getElementById('progress_bar').className = 'loading';
   }
 
@@ -561,14 +593,14 @@ $(document).ready(function() {
   $('.block_button').mouseenter(function(){
     if ($(this).attr("id") == 'btnOpenData' || 
         $(this).attr("id") == 'btnAbout' || 
-        localStorage.getItem('current_geodata') != null) {
+        localStorage.getItem('current_layer') != null) {
       $(this).css("border","1px solid #333");
     }
   });
   $('.block_button').mouseleave(function(){
     if ($(this).attr("id") == 'btnOpenData' || 
         $(this).attr("id") == 'btnAbout' || 
-        localStorage.getItem('current_geodata') != null) {
+        localStorage.getItem('current_layer') != null) {
       $(this).css("border","0px solid #333");
     }
   });
@@ -672,7 +704,7 @@ $(document).ready(function() {
 
 <div id="dialog-regression" title="Spatial Regression Dialog"> 
   <style>
-  .ui-widget-overlay { background: #aaa repeat-x; opacity: .8;}
+  .ui-widget-overlay { background: #eee repeat-x; opacity: .8;}
   table { border-spacing: 0;}
   th { text-align: left; padding: 10px 0 10px 0; }
   h1 { padding: .2em; margin: 0; font-size: 13px;}
@@ -687,8 +719,8 @@ $(document).ready(function() {
   .list li:hover { background-color: orange; }
   
   .dialogWithDropShadow{
-         -webkit-box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);  
-         -moz-box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5); 
+         -webkit-box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.5);  
+         -moz-box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.5); 
    }
   #weights { width: 600px; height: 90px; margin-right: 2em; display:block;}
   #model_spec { width: 600px; margin-right: 2em; height:370px; display:block;}
@@ -729,7 +761,7 @@ $(document).ready(function() {
             <table>
               <tr><td><label>Select Model Weights: </label></td>
               <td>
-                <select id="combobox">
+                <select id="sel-model-w-files">
                 <option value="">Select one...</option>
                 <option value="ActionScript">NAT.gal</option>
                 <option value="AppleScript">NAT.knn4.gwt</option>
@@ -738,7 +770,7 @@ $(document).ready(function() {
               <td><img src="http://atulgawande.com/wp-content/plugins/tweet-blender/img/ajax-refresh-icon.gif"/></td>
               </tr>
               <tr><td><label>Select Kernel Weights: </label></td>
-              <td><select id="combobox">
+              <td><select id="sel-kernel-w-files">
                 <option value="">Select one...</option>
                 <option value="ActionScript">NAT.gal</option>
                 <option value="AppleScript">NAT.knn4.gwt</option>
@@ -824,34 +856,9 @@ $(document).ready(function() {
             <button class="sort" data-sort="name">
             Sort
             </button>
-            <ul class="list">
+            <ul id="ul-x-variables" class="list">
               <li><p class="name">x1</p></li>
               <li><p class="name">x2</p></li>
-              <li><p class="name">x3</p></li>
-              <li><p class="name">x4</p></li>
-              <li><p class="name">x5</p></li>
-              <li><p class="name">x6</p></li>
-              <li><p class="name">x7</p></li>
-              <li><p class="name">x8</p></li>
-              <li><p class="name">x9</p></li>
-              <li><p class="name">x10</p></li>
-              <li><p class="name">x11</p></li>
-              <li><p class="name">x12</p></li>
-              <li><p class="name">x13</p></li>
-              <li><p class="name">x14</p></li>
-              <li><p class="name">x15</p></li>
-              <li><p class="name">x16</p></li>
-              <li><p class="name">x17</p></li>
-              <li><p class="name">x17</p></li>
-              <li><p class="name">x17</p></li>
-              <li><p class="name">x17</p></li>
-              <li><p class="name">x17</p></li>
-              <li><p class="name">x17</p></li>
-              <li><p class="name">x17</p></li>
-              <li><p class="name">x17</p></li>
-              <li><p class="name">x17</p></li>
-              <li><p class="name">x17</p></li>
-              <li><p class="name">x17</p></li>
             </ul>
           </div>
         </div>
@@ -1058,6 +1065,7 @@ $(function() {
     width: 540,
     autoOpen: false,
     modal: true,
+    dialogClass: "dialogWithDropShadow",
     buttons: {
       "Restore Defaults": function() {
         $( this ).dialog( "close" );
@@ -1152,6 +1160,24 @@ $(function() {
   table { border-spacing: 0;}
   th { text-align: left; padding: 10px 0 10px 0; }
   td { text-align: left;}
+  .custom-combobox {
+    position: relative;
+    display: inline-block;
+  }
+  .custom-combobox-toggle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    margin-left: -1px;
+    padding: 0;
+    /* support: IE7 */
+    *height: 1.7em;
+    *top: 0.1em;
+  }
+  .custom-combobox-input {
+    margin: 0;
+    padding: 0.3em;
+  }
   </style>
   <table>
     <tr><td><li>Please input a Weights name</li></td><td>
@@ -1257,12 +1283,14 @@ $(function() {
       console.log($('#spinner-cont-order').val());
     });
     $( "#dialog-weights" ).dialog({
-      height: 300,
+      height: 380,
       width: 440,
       autoOpen: false,
       modal: true,
+      dialogClass: "dialogWithDropShadow",
       buttons: {
         "Create": function() {
+          var layer_uuid = localStorage['current_layer']
           var active = $('#tabs-dlg-weights').tabs("option","active");
           var w_name = $('#txt-w-name').val();
           var w_id = $('#sel-w-id').find(":selected").val();
@@ -1274,6 +1302,7 @@ $(function() {
             console.log(w_type, cont_type, cont_order, cont_ilo);
             // submit request
             $.post("../create_weights/", {
+              'layer_uuid': layer_uuid,
               'w_id': w_id,
               'w_name': w_name, 
               'w_type':'contiguity', 

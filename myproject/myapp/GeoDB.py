@@ -1,5 +1,5 @@
 import os
-import ogr
+from osgeo import ogr
 
 GEODB_PATH = os.path.realpath(os.path.dirname(__file__)) + '/../database/geodata.sqlite'
 
@@ -10,9 +10,45 @@ DS = SQLITE_DRIVER.Open(GEODB_PATH, 0) # readonly
 if DS is None:
     print 'Open GeoDB failed'
 
+def ExportToSqlite(shp_path,layer_uuid):
+    print "export starting..", layer_uuid
+    # will be called in subprocess
+    import subprocess
+    rtn = subprocess.check_call(\
+        ["ogr2ogr","-append",GEODB_PATH,shp_path,"-nln",layer_uuid])
+    if rtn != 0:
+        # write to log
+        pass
+    if shp_path.endswith(".json") or shp_path.endswith(".geojson"):
+        ExportToESRIShape(shp_path) 
+    print rtn,"export ends."
+    
+def ExportToESRIShape(json_path):
+    # will be called in subprocess
+    import subprocess
+    shp_path = json_path + ".shp"
+    rtn = subprocess.check_call(\
+        ["ogr2ogr","-f \"ESRI Shapefile\"",shp_path,json_path])
+    if rtn != 0:
+        # write to log
+        pass
 
-def GetMetaData(layername):
-    lyr = DS.GetLayer(layername)
+def IsLayerExist(layer_uuid):
+    layer = DS.GetLayer(layer_uuid)
+    if layer: 
+        return True
+    else:
+        return False
+
+def GetDataSource(drivername, filepath):
+    driver = ogr.GetDriverByName(drivername)
+    ds = driver.Open(filepath, 0)
+    return ds
+    
+def GetMetaData(layername, drivername=None, filepath=None):
+    lyr = None
+    ds = GetDataSource(drivername,filepath) if drivername and filepath else DS 
+    lyr = ds.GetLayer(0) if drivername=="ESRI shapefile" else ds.GetLayer(layername)
     if lyr is None:
         return None
     meta_data = dict()
@@ -24,23 +60,23 @@ def GetMetaData(layername):
     lyrDefn = lyr.GetLayerDefn()
     meta_data['n'] = lyrDefn.GetFieldCount()
     
-    meta_data['fields'] = []
+    fields = dict()
     for i in range( lyrDefn.GetFieldCount() ):
-        fields = dict()
-        fields['fieldName'] =  lyrDefn.GetFieldDefn(i).GetName()
+        fieldName =  lyrDefn.GetFieldDefn(i).GetName()
         fieldTypeCode = lyrDefn.GetFieldDefn(i).GetType()
-        fields['fieldType'] = lyrDefn.GetFieldDefn(i).GetFieldTypeName(fieldTypeCode)
+        fieldType = lyrDefn.GetFieldDefn(i).GetFieldTypeName(fieldTypeCode)
         #fieldWidth = lyrDefn.GetFieldDefn(i).GetWidth()
         #GetPrecision = lyrDefn.GetFieldDefn(i).GetPrecision()
         #print fieldName, fieldTypeCode, fieldType
-        meta_data['fields'].append(fields)
+        fields[fieldName] = fieldType
+    meta_data['fields'] = fields
     return meta_data
 
 def GetGeometries(layername):
     pass
 
 # 0 Integer 2 Real 4 String
-def GetTableData(layername, column_names):
+def GetTableData(layername, column_names, drivername=None, filepath=None):
     lyr = DS.GetLayer(layername)
     if lyr is None:
         return None

@@ -24,7 +24,7 @@ class Geodata(models.Model):
     thumbnail = models.URLField()
 
 class Weights(models.Model):
-    #md5([username,shpfilename,weightsfilename,wtype,details])
+    #md5([username,shpfilename,wname])
     uuid = models.CharField(max_length=64, unique=True, db_index=True, primary_key=True)
     userid = models.CharField(max_length=80)
     shpfilename = models.CharField(max_length=255)
