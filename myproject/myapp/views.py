@@ -9,10 +9,11 @@ from django.conf import settings
 from myproject.myapp.models import Document, Weights, Geodata
 from myproject.myapp.forms import DocumentForm
 
+import numpy as NUM
 import json, time
 import multiprocessing as mp
 from hashlib import md5
-from pysal import w_union, higher_order
+from pysal import W, w_union, higher_order
 from pysal import rook_from_shapefile as rook
 from pysal import queen_from_shapefile as queen
 import GeoDB
@@ -215,5 +216,122 @@ def get_weights_names(request):
         return HttpResponse(json_result, content_type="application/json")
     return HttpResponse("ERROR")
 
-def ols(request):
-    request.POST.get("","") 
+FIELDNAMES = ["Estimated", "Residual", "StdResid","PredRes"]
+
+def run_ols(y,x,w,robust,name_y,name_x,layer_name,w_name):
+    # robust: white, hac
+    if w:
+        ols = OLS(y, x, w=w, spat_diag=True, robust=robust,name_y=name_y,
+                  name_x = name_x, name_ds = layer_name, name_w = w_name)
+    else:
+        ols = OLS(y, x, robust=robust,name_y=name_y,name_x = name_x,
+                  name_ds = layer_name)
+    n = len(y)
+    k = len(x) + 1
+    dof = n - k - 1
+    sdCoeff = NUM.sqrt(1.0 * dof / n)
+    resData = sd * ols.u / NUM.std(ols.u)
+    
+    return {FIELDNAMES[0]:ols.predy,FIELDNAMES[1]:ols.u,FIELDNAMES[2]:resData}
+   
+def run_lag():
+    if model_method == "ML":
+        lag = PYSAL.spreg.ML_Lag(y, x, w = w, spat_diag = True, name_y = name_y, name_x = name_x, name_w = w_Name, name_ds = layer_name, name_w = w_name)
+    else: # GMM
+        lag = PYSAL.spreg.GM_Lag(y, x, w = w, robust = robust, spat_diag = True, name_y = name_y, name_x = name_x, name_w = w_Name, name_ds = layer_name, name_w = w_name)
+    n = len(y)
+    k = len(x) + 1
+    dof = n -k - 1
+    sdCoeff = NUM.sqrt(1.0 * dof / n)
+    bottom = lag.u.std()
+    resData = sdCoeff * lag.u / bottom
+    ePredOut = lag.e_pred if lag.e_pred else NUM.ones(n) * NUM.nan
+    
+    return {FIELDNAMES[0]:ols.predy,FIELDNAMES[1]:ols.u,FIELDNAMES[2]:resData, FIELDNAMES[3]:ePredOut}
+
+def run_error():
+    if model_method == "ML":
+        method = preference["spreg"]["ml"]["method"]
+        error = PYSAL.spreg.ML_Error(y, x, w, method = method, name_y = name_y, name_x = name_x, name_w = w_Name, name_ds = layer_name, name_w = w_name)
+    else: # GMM
+        vm = preference["spreg"]["output"]["vm"] 
+        if not use_hac:
+            error = PYSAL.spreg.GM_Error(y, x, w, vm = vm, name_y = name_y, name_x = name_x, name_w = w_Name, name_ds = layer_name, name_w = w_name)
+        else:
+            max_iter = preference["spreg"]["gmm"]["max_iter"]  # 1
+            epsilon = preference["spreg"]["gmm"]["epsilon"]  # 
+            step1c = preference["spreg"]["gmm"]["step1c"]  # 
+            error = PYSAL.spreg.GM_Error_Het(y, x, w, max_iter=max_iter, epsilon = epsilon, step1c = step1c, vm = vm, name_y = name_y, name_x = name_x, name_w = w_Name, name_ds = layer_name, name_w = w_name)
+        else:
+            inv_method = preference["spreg"]["gmm"]["inv_method"]  # 
+            error = PYSAL.spreg.GM_Endog_Error_Het(y, x, yend, q, 
+            
+    n = len(y)
+    k = len(x) + 1
+    dof = n -k - 1
+    sdCoeff = NUM.sqrt(1.0 * dof / n)
+    bottom = lag.u.std()
+    resData = sdCoeff * lag.u / bottom
+    ePredOut = lag.e_pred if lag.e_pred else NUM.ones(n) * NUM.nan
+    
+    return {FIELDNAMES[0]:ols.predy,FIELDNAMES[1]:ols.u,FIELDNAMES[2]:resData, FIELDNAMES[3]:ePredOut}
+        
+    
+def run_combo():
+    if model_method == "ML":
+        combo = PYSAL.spreg.GM_Combo(y, x, yend, q, w, w_lags, lag_q, vm)
+    else: #GMM
+        combo = PYSAL.spreg.GM_Combo(y, x, yend, q, w, w_lags, lag_q, vm)
+        # Het
+        combo = PYSAL.spreg.GM_Combo(y, x, yend, q, w, w_lags, lag_q, max_iter, epsilon, step1c, inv_method, vm)
+        
+    
+def get_W(wuuid):
+    w_record = Weights.objects.get(uuid=wuuid)
+    if w_record:
+        neighbors = json.loads(w_record.neighbors)
+        weights = json.loads(w_record.weights)
+        return {w_record.name:W(neighbors, weights)}
+        
+def spatial_regression(request):
+    result = {"success":False}
+    # Get data
+    name_y = request.POST.get("y_name",None)
+    name_x = request.POST.get("x_names",None)
+    name_ye = request.POST.get("ye_name",None)
+    instruments_col_name = request.POST.get("inst_name",None)
+    r_col_name = request.POST.get("r_name",None)
+    t_col_name = request.POST.get("t_name",None)
+    wuuid_model = request.POST.get("wuuid_model",None)
+    wuuid_kernel = request.POST.get("wuuid_kernel",None)
+    model_type = request.POST.get("model_type",None)
+    model_method = request.POST.get("model_method", None)
+    model_stderror = request.POST.get("model_stderror", None)
+    
+    if not y_col_name and not x_col_names and not model_type and \
+       not model_method and not model_stderror:
+        result["message"] = "Parameters are not legal."
+        return HttpResponse(json.dumps(result))
+        
+    w_name, w_obj = get_W(wuuid)
+    reqeust_col_names = [y_col_name] + x_col_names
+    data = GeoDB.GetTableData(layer_uuid, [reqeust_col_names])
+    layer_name = Geodata.objects.get(uuid=layer_uuid).origfilename
+    
+    y = data[y_col_name]
+    yvar = NUM.var(y)
+    if NUM.isnan(yVar) or yVar <= 0.0:
+        result["message"] = "Y Variance should be larger than Zero."
+        return HttpResponse(json.dumps(result))
+    x = np.array([data[col_name] for col_name in x_col_names])
+    # 
+    if model_type == "standard":
+        result=run_ols(y,x,w,robust,y_col_name,x_col_names,layer_name,w_name)
+    elif model_type == "lag":
+        pass
+    elif model_type == "error":
+        pass
+    elif model_type == "lagerror":
+        
+    
+    
