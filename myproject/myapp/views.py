@@ -6,10 +6,10 @@ from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
-from myproject.myapp.models import Document, Weights, Geodata
+from myproject.myapp.models import Document, Weights, Geodata, Preference
 from myproject.myapp.forms import DocumentForm
 
-import numpy as NUM
+import numpy as np
 import json, time
 import multiprocessing as mp
 from hashlib import md5
@@ -17,6 +17,7 @@ from pysal import W, w_union, higher_order
 from pysal import rook_from_shapefile as rook
 from pysal import queen_from_shapefile as queen
 import GeoDB
+from gs_dispatcher import DEFAULT_SPREG_CONFIG, Spmodel
 
 def login(request):
     pass 
@@ -40,10 +41,8 @@ def main(request):
 
 def get_fields(request):
     userid = request.session.get('userid', False)
-    print userid
     if not userid:
         return HttpResponseRedirect('/myapp/login/') 
-    print request
     if request.method == 'GET': 
         layer_uuid = request.GET.get("layer_uuid","")
         print layer_uuid
@@ -51,8 +50,6 @@ def get_fields(request):
         if geodata:
             return HttpResponse(geodata.fields, content_type="application/json")
     return HttpResponse("ERROR")
-
-
 
 def upload(request):
     userid = request.session.get('userid', False)
@@ -159,6 +156,8 @@ def create_weights(request):
         w_id = request.POST.get("w_id", None)
         w_name = request.POST.get("w_name", None)
         w_type = request.POST.get("w_type", None)
+        # detect w_id is unique ID
+        print w_id
         if w_type == "contiguity":
             cont_type = request.POST.get("cont_type", None)
             cont_order = request.POST.get("cont_order", None)
@@ -167,24 +166,18 @@ def create_weights(request):
             file_url, shpfilename = get_file_url(userid, layer_uuid)
             file_url = settings.PROJECT_ROOT + file_url
             shp_path = file_url+".shp" if file_url.endswith("json") else file_url
-            print shp_path
-            t2 = time.time()
-            print t2-t1
-            w = rook(shp_path) if cont_type == 'rook' else queen(shp_path)
+            w = rook(shp_path, w_id) if cont_type == 'rook' \
+                else queen(shp_path, w_id)
             origWeight = w
             weight_order = int(cont_order)
-            print weight_order
             if weight_order > 1:
                 w = higher_order(w, weight_order)
-            print cont_ilo
             if cont_ilo == "true":
                 for order in xrange(weight_order-1,1,-1):
                     lowerOrderW = higher_order(origWeight, order)
                     w = w_union(w, lowerOrderW)
                 w = w_union(w, origWeight)
             # save to database
-            t3 = time.time()
-            print t3 - t2
             wtypemeta = json.dumps({'cont_type':cont_type,'cont_order':cont_order,'cont_ilo':cont_ilo})
             wuuid = md5(userid + shpfilename + w_name).hexdigest()
             histogram = str(w.histogram)
@@ -192,8 +185,6 @@ def create_weights(request):
             weights = json.dumps(w.weights)
             new_w_item = Weights(uuid=wuuid, userid=userid, shpfilename=shpfilename,name=w_name,n=w.n, wid=w_id, wtype=w_type, wtypemeta=wtypemeta, histogram=histogram, neighbors=neighbors,weights=weights)
             new_w_item.save()
-            t4 = time.time()
-            print t4 - t3
             return HttpResponse("OK")
         elif w_type == "distance":
             pass
@@ -211,127 +202,178 @@ def get_weights_names(request):
         layer_uuid = request.GET.get('layer_uuid','')
         file_url, shpfilename = get_file_url(userid, layer_uuid)
         w_array = Weights.objects.filter(userid = userid).filter(shpfilename = shpfilename)
-        w_names = {w.name:w.uuid for w in w_array}
+        w_names = {w.name : w.uuid for w in w_array}
         json_result = json.dumps(w_names)
         return HttpResponse(json_result, content_type="application/json")
     return HttpResponse("ERROR")
 
-FIELDNAMES = ["Estimated", "Residual", "StdResid","PredRes"]
+def helper_get_W(wuuid):
+    print "get_w"
+    try:
+        w_record = Weights.objects.get(uuid=wuuid)
+        if w_record:
+            neighbors = json.loads(w_record.neighbors)
+            neighbors = {int(k):v for k,v in neighbors.iteritems()}
+            weights = json.loads(w_record.weights)
+            weights = {int(k):v for k,v in weights.iteritems()}
+            w = W(neighbors, weights)
+            print w.sparse
+            w.name = w_record.name
+            return w
+    except:
+        pass
+    return None
 
-def run_ols(y,x,w,robust,name_y,name_x,layer_name,w_name):
-    # robust: white, hac
-    if w:
-        ols = OLS(y, x, w=w, spat_diag=True, robust=robust,name_y=name_y,
-                  name_x = name_x, name_ds = layer_name, name_w = w_name)
-    else:
-        ols = OLS(y, x, robust=robust,name_y=name_y,name_x = name_x,
-                  name_ds = layer_name)
-    n = len(y)
-    k = len(x) + 1
-    dof = n - k - 1
-    sdCoeff = NUM.sqrt(1.0 * dof / n)
-    resData = sd * ols.u / NUM.std(ols.u)
+def helper_get_W_list(wuuids):
+    w_list = []
+    for uuid in wuuids:
+        w = helper_get_W(uuid)
+        if w:
+            w_list.append(w)
+    return w_list
     
-    return {FIELDNAMES[0]:ols.predy,FIELDNAMES[1]:ols.u,FIELDNAMES[2]:resData}
-   
-def run_lag():
-    if model_method == "ML":
-        lag = PYSAL.spreg.ML_Lag(y, x, w = w, spat_diag = True, name_y = name_y, name_x = name_x, name_w = w_Name, name_ds = layer_name, name_w = w_name)
-    else: # GMM
-        lag = PYSAL.spreg.GM_Lag(y, x, w = w, robust = robust, spat_diag = True, name_y = name_y, name_x = name_x, name_w = w_Name, name_ds = layer_name, name_w = w_name)
-    n = len(y)
-    k = len(x) + 1
-    dof = n -k - 1
-    sdCoeff = NUM.sqrt(1.0 * dof / n)
-    bottom = lag.u.std()
-    resData = sdCoeff * lag.u / bottom
-    ePredOut = lag.e_pred if lag.e_pred else NUM.ones(n) * NUM.nan
-    
-    return {FIELDNAMES[0]:ols.predy,FIELDNAMES[1]:ols.u,FIELDNAMES[2]:resData, FIELDNAMES[3]:ePredOut}
-
-def run_error():
-    if model_method == "ML":
-        method = preference["spreg"]["ml"]["method"]
-        error = PYSAL.spreg.ML_Error(y, x, w, method = method, name_y = name_y, name_x = name_x, name_w = w_Name, name_ds = layer_name, name_w = w_name)
-    else: # GMM
-        vm = preference["spreg"]["output"]["vm"] 
-        if not use_hac:
-            error = PYSAL.spreg.GM_Error(y, x, w, vm = vm, name_y = name_y, name_x = name_x, name_w = w_Name, name_ds = layer_name, name_w = w_name)
-        else:
-            max_iter = preference["spreg"]["gmm"]["max_iter"]  # 1
-            epsilon = preference["spreg"]["gmm"]["epsilon"]  # 
-            step1c = preference["spreg"]["gmm"]["step1c"]  # 
-            error = PYSAL.spreg.GM_Error_Het(y, x, w, max_iter=max_iter, epsilon = epsilon, step1c = step1c, vm = vm, name_y = name_y, name_x = name_x, name_w = w_Name, name_ds = layer_name, name_w = w_name)
-        else:
-            inv_method = preference["spreg"]["gmm"]["inv_method"]  # 
-            error = PYSAL.spreg.GM_Endog_Error_Het(y, x, yend, q, 
-            
-    n = len(y)
-    k = len(x) + 1
-    dof = n -k - 1
-    sdCoeff = NUM.sqrt(1.0 * dof / n)
-    bottom = lag.u.std()
-    resData = sdCoeff * lag.u / bottom
-    ePredOut = lag.e_pred if lag.e_pred else NUM.ones(n) * NUM.nan
-    
-    return {FIELDNAMES[0]:ols.predy,FIELDNAMES[1]:ols.u,FIELDNAMES[2]:resData, FIELDNAMES[3]:ePredOut}
-        
-    
-def run_combo():
-    if model_method == "ML":
-        combo = PYSAL.spreg.GM_Combo(y, x, yend, q, w, w_lags, lag_q, vm)
-    else: #GMM
-        combo = PYSAL.spreg.GM_Combo(y, x, yend, q, w, w_lags, lag_q, vm)
-        # Het
-        combo = PYSAL.spreg.GM_Combo(y, x, yend, q, w, w_lags, lag_q, max_iter, epsilon, step1c, inv_method, vm)
-        
-    
-def get_W(wuuid):
-    w_record = Weights.objects.get(uuid=wuuid)
-    if w_record:
-        neighbors = json.loads(w_record.neighbors)
-        weights = json.loads(w_record.weights)
-        return {w_record.name:W(neighbors, weights)}
-        
 def spatial_regression(request):
-    result = {"success":False}
-    # Get data
-    name_y = request.POST.get("y_name",None)
-    name_x = request.POST.get("x_names",None)
-    name_ye = request.POST.get("ye_name",None)
-    instruments_col_name = request.POST.get("inst_name",None)
-    r_col_name = request.POST.get("r_name",None)
-    t_col_name = request.POST.get("t_name",None)
-    wuuid_model = request.POST.get("wuuid_model",None)
-    wuuid_kernel = request.POST.get("wuuid_kernel",None)
-    model_type = request.POST.get("model_type",None)
-    model_method = request.POST.get("model_method", None)
-    model_stderror = request.POST.get("model_stderror", None)
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect('/myapp/login/') 
+    result = {"success":0}
+    print request.POST
+    # Get param
+    layer_uuid = request.POST.get("layer_uuid",None)
+    wuuids_model = request.POST.getlist("w[]")
+    print wuuids_model
+    wuuids_kernel = request.POST.getlist("wk[]")
+    model_type = request.POST.get("type",None)
+    if model_type: model_type = int(model_type)
+    model_method = request.POST.get("method", None) #*
+    if model_method: model_method = int(model_method)
+    error = request.POST.getlist("error[]")
+    if len(error)==0: error = [0,0,0]
+    print error
+    white = int(error[0])
+    hac = int(error[1])
+    kp_het = int(error[2])
+    name_y = request.POST.get("y",None)
+    name_x = request.POST.getlist("x[]")
+    name_ye = request.POST.getlist("ye[]")
+    name_h = request.POST.getlist("h[]")
+    name_r = request.POST.get("r",None) # one col
+    name_t = request.POST.get("t",None) # one col
     
-    if not y_col_name and not x_col_names and not model_type and \
-       not model_method and not model_stderror:
+    print name_y, name_x, name_ye, name_h, name_r, name_t
+    
+    if not layer_uuid and not name_y and not name_x and model_type not in [0,1,2,3] and \
+       model_method not in [0,1,2]:
         result["message"] = "Parameters are not legal."
         return HttpResponse(json.dumps(result))
-        
-    w_name, w_obj = get_W(wuuid)
-    reqeust_col_names = [y_col_name] + x_col_names
-    data = GeoDB.GetTableData(layer_uuid, [reqeust_col_names])
+    
+    # These options are not available yet....
+    s = None
+    name_s = None
+   
+    mtypes = {0: 'Standard', 1: 'Spatial Lag', 2: 'Spatial Error', \
+              3: 'Spatial Lag+Error'}    
+    model_type = mtypes[model_type]
+    method_types = {0: 'ols', 1: 'gm', 2: 'ml'}
+    method = method_types[model_method]
+    
+    print wuuids_model
+    w_list = helper_get_W_list(wuuids_model)
+    wk_list = helper_get_W_list(wuuids_kernel)
+   
+    print w_list, wk_list 
+    LM_TEST = False
+    if len(w_list) > 0 and model_type in ['Standard', 'Spatial Lag']:
+        LM_TEST = True
+    
+    request_col_names = name_x
+    request_col_names.append(name_y)
+    if name_ye: request_col_names += name_ye
+    if name_h: request_col_names += name_h
+    if name_r: request_col_names.append(name_r)
+    if name_t: request_col_names.append(name_t)
+    print layer_uuid, request_col_names    
+    data = GeoDB.GetTableData(str(layer_uuid), request_col_names)
+    y = np.array([data[name_y]]).T
+    ye = np.array([data[name] for name in name_ye]).T if name_ye else None
+    x = np.array([data[name] for name in name_x]).T
+    h = np.array([data[name] for name in name_h]).T if name_h else None
+    r = np.array(data[name_r]) if name_r else None
+    t = np.array(data[name_t]) if name_t else None
+    #print y, ye, x, h, r, t 
     layer_name = Geodata.objects.get(uuid=layer_uuid).origfilename
-    
-    y = data[y_col_name]
-    yvar = NUM.var(y)
-    if NUM.isnan(yVar) or yVar <= 0.0:
-        result["message"] = "Y Variance should be larger than Zero."
-        return HttpResponse(json.dumps(result))
-    x = np.array([data[col_name] for col_name in x_col_names])
-    # 
-    if model_type == "standard":
-        result=run_ols(y,x,w,robust,y_col_name,x_col_names,layer_name,w_name)
-    elif model_type == "lag":
+    print layer_name  
+    config = DEFAULT_SPREG_CONFIG
+    try:
+        preference = Preference.objects.get(userid=userid)
+        print preference 
+        if preference: 
+            config = preference.spreg 
+    except:
         pass
-    elif model_type == "error":
-        pass
-    elif model_type == "lagerror":
-        
-    
+    predy_resid = None # not write to file
+    print "y.shape", y.shape
+    print "x.shape", x.shape
+    print w_list
+    models = Spmodel(
+        name_ds=layer_name,
+        w_list=w_list,
+        wk_list=wk_list,
+        y=y,
+        name_y=name_y,
+        x=x,
+        name_x=name_x,
+        ye=ye,
+        name_ye=name_ye,
+        h=h,
+        name_h=name_h,
+        r=r,
+        name_r=name_r,
+        s=s,
+        name_s=name_s,
+        t=t,
+        name_t=name_t,
+        model_type=model_type,  # data['modelType']['endogenous'],
+        # data['modelType']['spatial_tests']['lm'],
+        spat_diag=LM_TEST,
+        white=white,
+        hac=hac,
+        kp_het=kp_het,
+        # config.....
+        sig2n_k_ols=config['sig2n_k_ols'],
+        sig2n_k_tsls=config['sig2n_k_2sls'],
+        sig2n_k_gmlag=config['sig2n_k_gmlag'],
+        max_iter=config['gmm_max_iter'],
+        stop_crit=config['gmm_epsilon'],
+        inf_lambda=config['gmm_inferenceOnLambda'],
+        comp_inverse=config['gmm_inv_method'],
+        step1c=config['gmm_step1c'],
+        instrument_lags=config['instruments_w_lags'],
+        lag_user_inst=config['instruments_lag_q'],
+        vc_matrix=config['output_vm_summary'],
+        predy_resid=predy_resid,
+        ols_diag=config['other_ols_diagnostics'],
+        moran=config['other_residualMoran'],
+        white_test=config['white_test'],
+        regime_err_sep=config['regimes_regime_error'],
+        regime_lag_sep=config['regimes_regime_lag'],
+        cores=config['other_numcores'],
+        ml_epsilon=config['ml_epsilon'],
+        ml_method=config['ml_method'],
+        ml_diag=config['ml_diagnostics'],
+        method=method
+    ).output
+    model_result = {} 
+    print w_list
+    for i,model in enumerate(models):
+        if len(w_list) == len(models):
+            model_result[w_list[i].name] = model.summary
+        else:
+            model_result[i] = model.summary
+        model_result['predy'] = model.predy.tolist()
+    result['summary'] = model_result
+    result['success'] = 1
+    print result
+    return HttpResponse(json.dumps(result))
+
     

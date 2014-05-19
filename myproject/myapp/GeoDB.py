@@ -15,7 +15,7 @@ def ExportToSqlite(shp_path,layer_uuid):
     # will be called in subprocess
     import subprocess
     rtn = subprocess.check_call(\
-        ["ogr2ogr","-append",GEODB_PATH,shp_path,"-nln",layer_uuid])
+        ["ogr2ogr","-append", "-overwrite", GEODB_PATH,shp_path,"-nln",layer_uuid])
     if rtn != 0:
         # write to log
         pass
@@ -81,16 +81,19 @@ def GetTableData(layername, column_names, drivername=None, filepath=None):
     if lyr is None:
         return None
     lyrDefn = lyr.GetLayerDefn()
-    # get position of each query columns
-    colum_pos = { col_name:[] for col_name in column_names}
+    # get position of each query columns NOTE: take care of lowercase
+    colum_pos = { col_name:[] for col_name in column_names }
     for i in range( lyrDefn.GetFieldCount() ):
         col_name  =  lyrDefn.GetFieldDefn(i).GetName()
         col_type =  lyrDefn.GetFieldDefn(i).GetType()
-        if col_name in colum_pos:
-            colum_pos[col_name].append(i)
-            colum_pos[col_name].append(col_type)
+        for key in colum_pos:
+            if key.lower() == col_name.lower():
+                colum_pos[key].append(i)
+                colum_pos[key].append(col_type)
+                break
 
-    column_values = { col_name:[] for col_name in column_names}
+    print colum_pos
+    column_values = { col_name:[] for col_name in column_names }
     n = lyr.GetFeatureCount()
     feat = lyr.GetNextFeature()
     while feat:

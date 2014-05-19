@@ -21,6 +21,35 @@ import pysal.spreg.summary_output as SUMMARY
 import pysal.spreg.user_output as USER
 import pysal.spreg.regimes as REGI
 
+DEFAULT_SPREG_CONFIG = {
+    'sig2n_k_other': False,
+    'sig2n_k_ols': True,
+    'sig2n_k_gmlag': False,
+    'sig2n_k_2sls': False,
+    'gmm_epsilon': 1e-05,
+    'gmm_inferenceOnLambda': True,
+    'gmm_max_iter': 1,
+    'gmm_step1c': False,
+    'gmm_inv_method': 'Power Expansion',
+    'instruments_lag_q': True,
+    'instruments_w_lags': 1,
+    'other_ols_diagnostics': True,
+    'white_test': False,
+    'other_numcores': False,
+    'other_residualMoran': False,
+    'other_missingValueCheck': False,
+    'other_missingValue': 0.0,
+    'output_save_pred_residuals': False,
+    'output_vm_summary': False,
+    'output_show_detailed_spec': False,
+    'regimes_regime_error': True,
+    'regimes_regime_lag': False,
+    'ml_diagnostics': False,
+    'ml_epsilon': 1e-05,
+    'ml_method': 'Full'
+}
+
+
 INV_METHODS = ("Power Expansion", "True Inverse",)
 ML_METHODS = ("Full", "Ord",)
 
@@ -853,6 +882,7 @@ def get_OLS(gui):
             # add spatial diagnostics for each W
             reg_spat = COPY.copy(reg)
             reg_spat.name_w = w.name
+            print w.name, w, w.neighbors
             SUMMARY.spat_diag_ols(reg=reg_spat, w=w, moran=gui.moran)
             SUMMARY.summary(reg=reg_spat, vm=gui.vc_matrix, instruments=False,
                             nonspat_diag=gui.ols_diag, spat_diag=True)

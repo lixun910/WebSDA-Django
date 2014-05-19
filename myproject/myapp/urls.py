@@ -4,6 +4,7 @@ from django.views.generic import TemplateView
 
 urlpatterns = patterns('myproject.myapp.views',
     url(r'^test/$', 'test', name='test'),
+    url(r'^spatial_regression/$', 'spatial_regression', name='spatial regression'),
     url(r'^get_fields/$', 'get_fields', name='get field names'),
     url(r'^upload/$', 'upload', name='upload'),
     url(r'^list/$', 'list', name='list'),
