@@ -10,7 +10,7 @@ from myproject.myapp.models import Document, Weights, Geodata, Preference
 from myproject.myapp.forms import DocumentForm
 
 import numpy as np
-import json, time
+import json, time, os
 import multiprocessing as mp
 from hashlib import md5
 from pysal import W, w_union, higher_order
@@ -19,12 +19,29 @@ from pysal import queen_from_shapefile as queen
 import GeoDB
 from gs_dispatcher import DEFAULT_SPREG_CONFIG, Spmodel
 
-def login(request):
-    pass 
-
 def test(request):
-    request.session['userid'] = 'test1'
+    return HttpResponse(request.session['userid'])
     
+def logout(request):
+    request.session['userid'] = None
+    return HttpResponseRedirect('/myapp/login/') 
+    
+def login(request):
+    session_userid = request.session.get('userid', False)
+    userid = request.POST.get('userid', None)
+    print session_userid, userid
+    if session_userid:
+        return HttpResponseRedirect('/myapp/main/') 
+    elif userid: 
+        # validate
+        request.session['userid'] = userid
+        return HttpResponseRedirect('/myapp/main/') 
+         
+    return render_to_response(
+        'myapp/login.html',{},
+        context_instance=RequestContext(request)
+    )
+
 def main(request):
     # check user login
     userid = request.session.get('userid', False)
@@ -32,10 +49,11 @@ def main(request):
         return HttpResponseRedirect('/myapp/login/') 
 
     geodata = Geodata.objects.all().filter( userid=userid )
+       
     # render main page with userid, shps/tables, weights
     return render_to_response(
         'myapp/main.html',
-        {'userid': userid, 'geodata': geodata},
+        {'userid': userid, 'geodata': {(i+1):layer for i,layer in enumerate(geodata)}, 'n': len(geodata), 'nn':range(1,len(geodata)+1)},
         context_instance=RequestContext(request)
     )
 
@@ -107,6 +125,44 @@ def upload(request):
         # Get data from dropbox or other links
         return HttpResponse("OK")
 
+
+def get_file_url(userid, layer_uuid):
+    geodata = Geodata.objects.get(uuid=layer_uuid)
+    if geodata:
+        file_uuid = md5(geodata.userid + geodata.origfilename).hexdigest()
+        document = Document.objects.get(uuid=file_uuid)
+        if document:
+            return document.docfile.url, document.filename
+    return None
+
+def upload_canvas(request):
+    import base64, cStringIO, re
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect('/myapp/login/') 
+    if request.method == 'POST': 
+        layer_uuid = request.POST.get('layer_uuid',None)
+        if layer_uuid:
+            shp_url = get_file_url(userid, layer_uuid)
+            if shp_url:
+                shp_location, shp_name = shp_url
+                image_location = settings.PROJECT_ROOT + shp_location + ".png"
+                print image_location
+                if not os.path.isfile(image_location):
+                    datauri = request.POST['imageData']
+                    print datauri
+                    imgstr = re.search(r'base64,(.*)', datauri).group(1)
+                    o = open(image_location, 'wb')
+                    o.write(imgstr.decode('base64'))
+                    o.close()
+                    # update Geodata table
+                    geodata = Geodata.objects.get(uuid=layer_uuid)
+                    geodata.thumbnail = shp_location + ".png"
+                    geodata.save()
+                    return HttpResponse("OK")
+                
+    return HttpResponse("ERROR")
+        
 def list(request):
     # Handle file upload
     if request.method == 'POST' and request.session.get('userid', False):
@@ -135,16 +191,6 @@ def list(request):
         {'documents': documents, 'form': form},
         context_instance=RequestContext(request)
     )
-
-
-def get_file_url(userid, layer_uuid):
-    geodata = Geodata.objects.get(uuid=layer_uuid)
-    if geodata:
-        file_uuid = md5(geodata.userid + geodata.origfilename).hexdigest()
-        document = Document.objects.get(uuid=file_uuid)
-        if document:
-            return document.docfile.url, document.filename
-    return None
         
 def create_weights(request):
     userid = request.session.get('userid', False)
@@ -294,6 +340,7 @@ def spatial_regression(request):
     if name_t: request_col_names.append(name_t)
     print layer_uuid, request_col_names    
     data = GeoDB.GetTableData(str(layer_uuid), request_col_names)
+    print name_y
     y = np.array([data[name_y]]).T
     ye = np.array([data[name] for name in name_ye]).T if name_ye else None
     x = np.array([data[name] for name in name_x]).T
@@ -366,12 +413,11 @@ def spatial_regression(request):
     model_result = {} 
     print w_list
     for i,model in enumerate(models):
+        model_id = i
         if len(w_list) == len(models):
-            model_result[w_list[i].name] = model.summary
-        else:
-            model_result[i] = model.summary
-        model_result['predy'] = model.predy.tolist()
-    result['summary'] = model_result
+            model_id = w_list[i].name
+        model_result[model_id] = {'summary':model.summary,'predy':model.predy.T.tolist()}
+    result['report'] = model_result
     result['success'] = 1
     print result
     return HttpResponse(json.dumps(result))

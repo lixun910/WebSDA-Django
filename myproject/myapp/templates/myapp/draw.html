@@ -178,23 +178,15 @@ body {
 
 <script type="text/javascript">
  	
-
-function SelectMap() {
-  console.log($(this));
-}
 ///////////////////////////////////////////////////////////////
 // Show map function
 ///////////////////////////////////////////////////////////////
 var data; // global for testing
 
-{% if geodata %}
-var mapCounter = {{ n }};
-{% else %}
 var mapCounter = 1;
-{% endif %}
 function CreateMapContainer(jsonFilePath) {
   var containerID = 'map' + mapCounter;
-  $('#mapslider ul').append("<li><center>" + jsonFilePath + "<div id="+containerID+" class=map_div onclick='SelectMap()'></div></center></li>"); 
+  $('#mapslider ul').append("<li><center>" + jsonFilePath + "<div id="+containerID+" class=map_div></div></center></li>"); 
   $('#mapnav').append("<label for=slides_"+mapCounter+"></label>");
   $('.arrows').append("<label for=slides_"+mapCounter+"></label>");
   //$('#mapslider').removeClass('csslider').addClass('csslider');
@@ -331,10 +323,9 @@ function ShowJsonMap(jsonFilePath, content, onSuccess) {
                 context.stroke();
             });
         });
-        console.log("send thumbnail", new Date().getTime() / 1000);
         //context.fill();
         if (onSuccess!= undefined) {
-          onSuccess(canvas[0][0]);
+          //onSuccess(canvas[0][0]);
         }
         
     };
@@ -353,7 +344,6 @@ function ShowJsonMap(jsonFilePath, content, onSuccess) {
             });
         }
     }
-      console.log("draw done",new Date().getTime() / 1000);
 } // end function ShowJsonMap()
 
 
@@ -536,7 +526,6 @@ $(document).ready(function() {
           w_names.push(key); 
         }
         w_names.sort();
-        console.log(w_names);
         w_combobox= ['#sel-model-w-files', '#sel-kernel-w-files'];
         $.each(w_combobox, function(i, w_cmb) {
           $(w_cmb).find('option').remove().end();
@@ -611,7 +600,7 @@ $(document).ready(function() {
         setTimeout("document.getElementById('progress_bar').className='';", 5000);
     }; 
     xhr.upload.onprogress = updateProgress;
-    xhr.send(formData);
+    //xhr.send(formData);
     document.getElementById('progress_bar').className = 'loading';
   }
 
@@ -732,19 +721,7 @@ jQuery.fn.popupDiv = function (divToPop, text) {
         <font style="color: #666; font-size: 30px" face="Copperplate">WEB</font>
         </font><font style="color: #666;" size=16 face="Century Gothic">}</font>
     </div>
-    <div style="float:right">
-    welcome {{userid}}. <button id="btn_logout">logout</button>
-    </div>
 </div>
-<script>
-$('#btn_logout').click(function(){
-  $.post("/myapp/logout/", {csrfmiddlewaretoken: '{{ csrf_token }}'})
-  .done(function(data) {
-    console.log(data);
-    location.reload();
-  });
-});
-</script>
 <div id="toolbar">
     <div style="clear: left;"></div>
     <table class="toolbar_tbl">
@@ -794,30 +771,11 @@ $('#btn_logout').click(function(){
     <input type="radio" name="slides" id="slides_3" />
     <input type="radio" name="slides" id="slides_4" />
     <ul>
-    {% if geodata %}
-        {% for i,layer in geodata.iteritems %}
-        <li>
-          <center> {{layer.origfilename}}
-            <div id="map{{i}}" class="map_div"><img onclick="SelectMap" id="{{layer.uuid}}" src="{{layer.thumbnail}}"></div>
-          </center>
-        </li>
-        {% endfor %}
-    {% endif %}
     </ul>
     <div class="arrows">
-    {% if geodata %}
-        {% for i in nn %}
-        <label for="slides_{{i}}"></label>
-        {% endfor %}
-    {% endif %}
     </div>
     <div class="navigation">
         <div id="mapnav">
-        {% if geodata %}
-            {% for i in nn %}
-            <label for="slides_{{i}}"></label>
-            {% endfor %}
-        {% endif %}
         </div>
     </div>
 </div>
@@ -1158,6 +1116,7 @@ $(function() {
   });
 
   $( ".drop_box ol li" ).dblclick(function() {
+    console.log($(this));
   });
 
   $( ".drop_box ol" ).droppable({
@@ -1167,6 +1126,7 @@ $(function() {
     drop: function( event, ui ) {
       $( this ).find( ".placeholder" ).remove();
       // customized behavior for different dropbox
+      console.log($(this).closest("div").attr("id"),$(this).children().length);
       var box_id = $(this).closest("div").attr("id");
       var n_items = $(this).children().length;
       if ( n_items > 0) {
@@ -1315,6 +1275,7 @@ $(function() {
       return;
     }
     var w_list = GetValsFromObjs($('#sel-model-w-files :selected'));
+    console.log(w_list);
     var wk_list = GetValsFromObjs($('#sel-kernel-w-files :selected'));
     console.log(wk_list);
     var model_type = $('input:radio[name=model_type]:checked').val();
@@ -1529,7 +1490,6 @@ $(function() {
               csrfmiddlewaretoken: '{{ csrf_token }}'})
             .done(function( data ) {
               alert( "Data Loaded: " + data );
-              fillForms();
             });
 
           } else if ( active === 1 ) {
