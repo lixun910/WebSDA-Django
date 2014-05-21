@@ -233,9 +233,12 @@ def create_weights(request):
             new_w_item.save()
             return HttpResponse("OK")
         elif w_type == "distance":
-            pass
+            dist_metric = request.POST.get("dist_metric", None)
+            dist_method = request.POST.get("dist_method", None)
+            dist_value = request.POST.get("dist_value", None)
         elif w_type == "kernel":
-            pass
+            kernel_type = request.POST.get("kernel_type", None)
+            kernel_nn = request.POST.get("kernel_nn", None)
 
         return HttpResponse("ERROR")
     return HttpResponse("ERROR")
