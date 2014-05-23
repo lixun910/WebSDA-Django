@@ -1,7 +1,10 @@
 from pysal import W, w_union, higher_order
 from pysal import rook_from_shapefile as rook
 from pysal import queen_from_shapefile as queen
+import pysal.threshold_binaryW_from_shapefile as thresholdW_from_shapefile
 
+DISTANCE_METRICS = ['Euclidean Distance', 'Arc Distance (miles)', \
+                    'Arc Distance (kilometers)']
 def CreateWeights(weights_type, shp_path, weights_name, w_unique_ID, \
                   cont_type = None, cont_order = None, cont_ilo = None, \
                   dist_metric = None, dist_method = None, dist_value = None,\
@@ -22,7 +25,25 @@ def CreateWeights(weights_type, shp_path, weights_name, w_unique_ID, \
             w = w_union(w, orig_w)
             
     elif weights_type == "distance":
-        pass
+        params = {'idVariable': w_unique_ID, 'radius': radius}
+        if dist_method == "threshold":
+            w = threshold_binW_from_shapefile( shp_path, cutoff, **params )
+        elif dist_method == "knn":
+            params['k'] = k
+            w = knnW_from_shapefile( shp_path, **params )
+        elif dist_method == "inverse_distance":
+            params['alpha'] = -1 * power
+            w = threshold_contW_from_shapefile( shp_path, cutoff, **params )
     
     elif weights_type == "kernel":
-        pass
+        kerns = ['uniform', 'triangular', 'quadratic', 'quartic', 'gaussian']
+        kern = kerns[int(kernel_type)]
+        k = int(kernel_nn) 
+        w = adaptive_kernelW_from_shapfile( shp_path, k = k, function = kern, \
+                                            idVariable = var, radius = radius )
+        w = insert_diagnoal( w, wsp = False )
+        method_options = [kern, k]
+    
+    w_object = {'w' : w, 'shapefile' : shp_path, 'id' : w_unique_ID, 'method' : weights_type, 'method options' : method_options}
+    
+    return w_object
