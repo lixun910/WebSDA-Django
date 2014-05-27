@@ -82,7 +82,10 @@ def GetTableData(layername, column_names, drivername=None, filepath=None):
         return None
     lyrDefn = lyr.GetLayerDefn()
     # get position of each query columns NOTE: take care of lowercase
-    colum_pos = { col_name:[] for col_name in column_names }
+    colum_pos = {}
+    for col_name in column_names:
+        colum_pos[col_name] = []
+
     for i in range( lyrDefn.GetFieldCount() ):
         col_name  =  lyrDefn.GetFieldDefn(i).GetName()
         col_type =  lyrDefn.GetFieldDefn(i).GetType()
@@ -93,7 +96,10 @@ def GetTableData(layername, column_names, drivername=None, filepath=None):
                 break
 
     print colum_pos
-    column_values = { col_name:[] for col_name in column_names }
+    column_values = {}
+    for col_name in column_names:
+        column_values[col_name] = []
+
     n = lyr.GetFeatureCount()
     feat = lyr.GetNextFeature()
     while feat:

@@ -49,11 +49,13 @@ def main(request):
         return HttpResponseRedirect('/myapp/login/') 
 
     geodata = Geodata.objects.all().filter( userid=userid )
-       
+    geodata_content =  {}
+    for i,layer in geodata.iteritems():
+        geodata_content[i+1] = layer
     # render main page with userid, shps/tables, weights
     return render_to_response(
         'myapp/main.html',
-        {'userid': userid, 'geodata': {(i+1):layer for i,layer in enumerate(geodata)}, 'n': len(geodata), 'nn':range(1,len(geodata)+1)},
+        {'userid': userid, 'geodata': geodata_content, 'n': len(geodata), 'nn':range(1,len(geodata)+1)},
         context_instance=RequestContext(request)
     )
 
@@ -251,7 +253,9 @@ def get_weights_names(request):
         layer_uuid = request.GET.get('layer_uuid','')
         file_url, shpfilename = get_file_url(userid, layer_uuid)
         w_array = Weights.objects.filter(userid = userid).filter(shpfilename = shpfilename)
-        w_names = {w.name : w.uuid for w in w_array}
+        w_names = {}
+        for w in w_array:
+            w_names[w.name] = w.uuid
         json_result = json.dumps(w_names)
         return HttpResponse(json_result, content_type="application/json")
     return HttpResponse("ERROR")
@@ -262,10 +266,14 @@ def helper_get_W(wuuid):
         w_record = Weights.objects.get(uuid=wuuid)
         if w_record:
             neighbors = json.loads(w_record.neighbors)
-            neighbors = {int(k):v for k,v in neighbors.iteritems()}
+            for k,v in neighbors.iteritems():
+                neighbors_dict[int(k)] = v
+
             weights = json.loads(w_record.weights)
-            weights = {int(k):v for k,v in weights.iteritems()}
-            w = W(neighbors, weights)
+            for k,v in weights.iteritems():
+                weights_dict[int(k)] = v
+
+            w = W(neighbors_dict, weights_idct)
             print w.sparse
             w.name = w_record.name
             return w
