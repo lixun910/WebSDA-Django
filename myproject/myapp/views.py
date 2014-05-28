@@ -9,6 +9,7 @@ from django.conf import settings
 from myproject.myapp.models import Document, Weights, Geodata, Preference
 from myproject.myapp.forms import DocumentForm
 
+import logging
 import numpy as np
 import json, time, os
 import multiprocessing as mp
@@ -19,23 +20,28 @@ from pysal import queen_from_shapefile as queen
 import GeoDB
 from gs_dispatcher import DEFAULT_SPREG_CONFIG, Spmodel
 
+logger = logging.getLogger(__name__)
+
 def test(request):
     return HttpResponse(request.session['userid'])
     
 def logout(request):
     request.session['userid'] = None
-    return HttpResponseRedirect('/myapp/login/') 
+    return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     
 def login(request):
+    logger.info('login info') 
+    logger.debug('login debug') 
+    logger.error('login error') 
     session_userid = request.session.get('userid', False)
     userid = request.POST.get('userid', None)
     print session_userid, userid
     if session_userid:
-        return HttpResponseRedirect('/myapp/main/') 
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/main/') 
     elif userid: 
         # validate
         request.session['userid'] = userid
-        return HttpResponseRedirect('/myapp/main/') 
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/main/') 
          
     return render_to_response(
         'myapp/login.html',{},
@@ -46,11 +52,11 @@ def main(request):
     # check user login
     userid = request.session.get('userid', False)
     if not userid:
-        return HttpResponseRedirect('/myapp/login/') 
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
 
     geodata = Geodata.objects.all().filter( userid=userid )
     geodata_content =  {}
-    for i,layer in geodata.iteritems():
+    for i,layer in enumerate(geodata):
         geodata_content[i+1] = layer
     # render main page with userid, shps/tables, weights
     return render_to_response(
@@ -62,7 +68,7 @@ def main(request):
 def get_fields(request):
     userid = request.session.get('userid', False)
     if not userid:
-        return HttpResponseRedirect('/myapp/login/') 
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'GET': 
         layer_uuid = request.GET.get("layer_uuid","")
         print layer_uuid
@@ -74,7 +80,7 @@ def get_fields(request):
 def upload(request):
     userid = request.session.get('userid', False)
     if not userid:
-        return HttpResponseRedirect('/myapp/login/') 
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'POST': 
         # Get data from form
         filelist = request.FILES.getlist('docfile')

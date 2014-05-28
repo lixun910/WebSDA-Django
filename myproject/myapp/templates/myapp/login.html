@@ -55,9 +55,13 @@ $('#btn_login').click( function() {
   var userid = $('#txt-uid').val(); 
   var pwd = $('#txt-pwd').val(); 
   console.log("click", userid, pwd);
-  $.post("/myapp/login/", {"userid":userid, "pwd": pwd,csrfmiddlewaretoken: '{{ csrf_token }}'})
+  $.post("../login/", {"userid":userid, "pwd": pwd,csrfmiddlewaretoken: '{{ csrf_token }}'})
   .done(function(data) {
+    console.log(data);
     location.reload();
+  })
+  .fail( function(xhr, textStatus, errorThrown) {
+    console.log(xhr.responseText);
   });
 });
 </script>

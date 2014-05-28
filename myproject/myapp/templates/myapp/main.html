@@ -738,7 +738,7 @@ jQuery.fn.popupDiv = function (divToPop, text) {
 </div>
 <script>
 $('#btn_logout').click(function(){
-  $.post("/myapp/logout/", {csrfmiddlewaretoken: '{{ csrf_token }}'})
+  $.post("../logout/", {csrfmiddlewaretoken: '{{ csrf_token }}'})
   .done(function(data) {
     console.log(data);
     location.reload();

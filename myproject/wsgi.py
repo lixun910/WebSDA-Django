@@ -13,16 +13,28 @@ middleware here, or combine a Django application with an application of another
 framework.
 
 """
-import os
+import os, sys
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "myproject.settings")
+# redirect sys.stdout to sys.stderr for bad libraries like geopy that uses 
+# print statements for optional import exceptions. 
+sys.stdout = sys.stderr
+
+sys.path.append('/var/www/websda')
+sys.path.append('/var/www/websda/myproject')
+print sys.path
+
+os.environ["DJANGO_SETTINGS_MODULE"] =  "myproject.settings"
 
 # This application object is used by any WSGI server configured to use this
 # file. This includes Django's development server, if the WSGI_APPLICATION
 # setting points here.
-from django.core.wsgi import get_wsgi_application
-application = get_wsgi_application()
+#from django.core.wsgi import get_wsgi_application
+#application = get_wsgi_application()
 
 # Apply WSGI middleware here.
 # from helloworld.wsgi import HelloWorldApplication
 # application = HelloWorldApplication(application)
+
+import django.core.handlers.wsgi
+
+application = django.core.handlers.wsgi.WSGIHandler()
