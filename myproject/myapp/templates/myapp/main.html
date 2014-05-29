@@ -96,7 +96,7 @@ body {
     width: 0;
 }
 .check_file {
-  background-image: url("/media/img/checkmark.png");
+  background-image: url("/websda/media/img/checkmark.png");
   background-repeat:no-repeat;
   background-position:right; 
 }
@@ -139,41 +139,41 @@ body {
     background-position: center;
 }
 #btnOpenData{
-    background-image: url(/media/img/add-file.png);
+    background-image: url(/websda/media/img/add-file.png);
 }
 #btnSave {
-    background-image: url(/media/img/ToolBar-save-project_disabled.png);
+    background-image: url(/websda/media/img/ToolBar-save-project_disabled.png);
 }
 #btnShowTable {
-    background-image: url(/media/img/ToolBar-table.png);
+    background-image: url(/websda/media/img/ToolBar-table.png);
 }
 #btnCreateWeights {
-    background-image: url(/media/img/ToolBar-new-weights.png);
+    background-image: url(/websda/media/img/ToolBar-new-weights.png);
 }
 #btnSpatialRegression {
-    background-image: url(/media/img/ToolBar-regression.png);
+    background-image: url(/websda/media/img/ToolBar-regression.png);
 }
 #btnAbout {
-    background-image: url(/media/img/about.png);
+    background-image: url(/websda/media/img/about.png);
 }
 </style>
 
-<link rel="stylesheet" href="/media/css/csslider.css" />
-<script src="/media/js/jquery.min.js"></script>
-<script src="/media/js/d3.v3.min.js"></script>
-<script src="/media/js/inflate.js"></script>
-<script src="/media/js/zip/zip.js"></script>
-<script src="/media/stream.js"></script>
-<script src="/media/shapefile.js"></script>
-<script src="/media/dbf.js"></script>
-<script src="/media/js/indexeddb.js"></script>
-<script src="/media/js/utils.js"></script>
-<script src="/media/js/jsonmap.js"></script>
+<link rel="stylesheet" href="/websda/media/css/csslider.css" />
+<script src="/websda/media/js/jquery.min.js"></script>
+<script src="/websda/media/js/d3.v3.min.js"></script>
+<script src="/websda/media/js/inflate.js"></script>
+<script src="/websda/media/js/zip/zip.js"></script>
+<script src="/websda/media/stream.js"></script>
+<script src="/websda/media/shapefile.js"></script>
+<script src="/websda/media/dbf.js"></script>
+<script src="/websda/media/js/indexeddb.js"></script>
+<script src="/websda/media/js/utils.js"></script>
+<script src="/websda/media/js/jsonmap.js"></script>
 <script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="50dk6qp6nc2fcxs"></script>
 
 <link rel="stylesheet" href="//code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
-<script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/list.js/1.1.1/list.min.js"></script>
+<script src="http://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/list.js/1.1.1/list.min.js"></script>
 <link rel="stylesheet" href="http://jqueryui.com/resources/demos/style.css">
 
 <script type="text/javascript">
@@ -210,7 +210,7 @@ function SaveMapThumbnail(canvas) {
     var dataURL = canvas.toDataURL();
     $.ajax({
       type: "POST",
-      url: "/myapp/upload_canvas/",
+      url: "../upload_canvas/",
       data: { 
          imageData: dataURL,
          layer_uuid: layer_uuid,
@@ -497,7 +497,7 @@ $(document).ready(function() {
       //-----------------------------------------------
       // get fields information
       //-----------------------------------------------
-      $.get("/myapp/get_fields/", {"layer_uuid": layer_uuid},function() {
+      $.get("../get_fields/", {"layer_uuid": layer_uuid},function() {
       }).done(function(fields) {
         var field_names = [];
         for ( var key in fields ){
@@ -529,7 +529,7 @@ $(document).ready(function() {
       //-----------------------------------------------
       // get weights name:uuid
       //-----------------------------------------------
-      $.get("/myapp/get_weights_names/", {"layer_uuid": layer_uuid},function() {
+      $.get("../get_weights_names/", {"layer_uuid": layer_uuid},function() {
       }).done(function(data) {
         var w_names = [];
         for ( var key in data){
@@ -593,7 +593,7 @@ $(document).ready(function() {
     // upload files to server
     formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
     var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/myapp/upload/');
+    xhr.open('POST', '../upload/');
     xhr.onload = function() {
         try{
           data = JSON.parse(this.responseText);
@@ -726,7 +726,7 @@ jQuery.fn.popupDiv = function (divToPop, text) {
 
 <div id="header"> 
     <div class="container">
-        <img src="/media/img/cloud.png"/>
+        <img src="/websda/media/img/cloud.png"/>
         <font style="color: #666;" size=16 face="Century Gothic">{</font>
         <font style="color: #666; font-size: 30px">'Spatial Data Analysis':</font>
         <font style="color: #666; font-size: 30px" face="Copperplate">WEB</font>
@@ -798,7 +798,7 @@ $('#btn_logout').click(function(){
         {% for i,layer in geodata.iteritems %}
         <li>
           <center> {{layer.origfilename}}
-            <div id="map{{i}}" class="map_div"><img onclick="SelectMap" id="{{layer.uuid}}" src="{{layer.thumbnail}}"></div>
+            <div id="map{{i}}" class="map_div"><img onclick="SelectMap" id="{{layer.uuid}}" src="/websda/{{layer.thumbnail}}"></div>
           </center>
         </li>
         {% endfor %}
@@ -1343,7 +1343,7 @@ $(function() {
     console.log(t[0]); 
     // run model
     params = { 'layer_uuid': layer_uuid, 'w': w_list, 'wk': wk_list, 'type': model_type, 'method': method, 'error': error, 'x': x, 'y': y, 'ye': ye, "h": h, "r": r, "t": t, csrfmiddlewaretoken: '{{ csrf_token }}'};
-    $.post("/myapp/spatial_regression/", params, function(){
+    $.post("../spatial_regression/", params, function(){
         // spinning for run 
           $('#btn_result').hide();
       }).done(function(data) {
