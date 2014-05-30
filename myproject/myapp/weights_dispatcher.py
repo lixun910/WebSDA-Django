@@ -9,6 +9,7 @@ def CreateWeights(weights_type, shp_path, weights_name, w_unique_ID, \
                   cont_type = None, cont_order = None, cont_ilo = None, \
                   dist_metric = None, dist_method = None, dist_value = None,\
                   kernel_type = None, kernel_nn = None):
+    
     if weights_type == "contiguity": 
         if cont_type == "rook":
             w = rook( shp_path, w_unique_ID )
