@@ -6,14 +6,14 @@ from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
-from myproject.myapp.models import Document, Weights, Geodata, Preference
-from myproject.myapp.forms import DocumentForm
-
-import logging
 import numpy as np
-import json, time, os
+import json, time, os, logging
 import multiprocessing as mp
 from hashlib import md5
+
+from myproject.myapp.models import Document, Geodata
+
+from views_utils import get_file_url
 import GeoDB
 
 logger = logging.getLogger(__name__)
@@ -96,18 +96,6 @@ def upload(request):
         return HttpResponse("OK")
 
 """
-Get reletive url of shape files that user uploaded to server.
-"""
-def get_file_url(userid, layer_uuid):
-    geodata = Geodata.objects.get(uuid=layer_uuid)
-    if geodata:
-        file_uuid = md5(geodata.userid + geodata.origfilename).hexdigest()
-        document = Document.objects.get(uuid=file_uuid)
-        if document:
-            return document.docfile.url, document.filename
-    return None
-
-"""
 Upload the image that draw on user's browser in HTML5 canvas.
 The image name will just append ".png" to shape file name.
 The url of image is stored in related geodatabase under the field
@@ -125,10 +113,10 @@ def upload_canvas(request):
             if shp_url:
                 shp_location, shp_name = shp_url
                 image_location = settings.PROJECT_ROOT + shp_location + ".png"
-                print image_location
+                #print image_location
                 if not os.path.isfile(image_location):
                     datauri = request.POST['imageData']
-                    print datauri
+                    #print datauri
                     imgstr = re.search(r'base64,(.*)', datauri).group(1)
                     o = open(image_location, 'wb')
                     o.write(imgstr.decode('base64'))

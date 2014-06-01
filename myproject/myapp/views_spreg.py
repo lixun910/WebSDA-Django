@@ -14,9 +14,10 @@ import json, time, os
 import multiprocessing as mp
 from hashlib import md5
 from pysal import W
+
 import GeoDB
 from gs_dispatcher import DEFAULT_SPREG_CONFIG, Spmodel
-from views_weights import helper_get_W_list
+from views_utils import helper_get_W_list
 
 logger = logging.getLogger(__name__)
 
