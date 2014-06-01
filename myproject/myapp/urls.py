@@ -6,7 +6,6 @@ urlpatterns = patterns('myproject.myapp.views',
     url(r'^test/$', 'test', name='test'),
     url(r'^login/$', 'login', name='login'),
     url(r'^logout/$', 'logout', name='logout'),
-    url(r'^spatial_regression/$', 'spatial_regression', name='spatial regression'),
     url(r'^get_fields/$', 'get_fields', name='get field names'),
     url(r'^upload_canvas/$', 'upload_canvas', name='upload canvas'),
     url(r'^upload/$', 'upload', name='upload'),
@@ -18,4 +17,8 @@ urlpatterns = patterns('myproject.myapp.views',
     url(r'^ols/$', TemplateView.as_view(template_name='myapp/ols.html')),
     url(r'^weights/$', TemplateView.as_view(template_name='myapp/weights.html')),
     url(r'^draw/$', TemplateView.as_view(template_name='myapp/draw.html')),
-)
+) 
+
+urlpatterns += patterns('myproject.myapp.views_spreg',
+    url(r'^spatial_regression/$', 'spatial_regression', name='spatial regression'),
+)    
