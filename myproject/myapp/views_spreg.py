@@ -23,11 +23,11 @@ logger = logging.getLogger(__name__)
 
 def save_spreg_preference(request):
     userid = request.session.get('userid', False)
+    print request.POST
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'POST':
-        pref = request.POST.get("preference", None)
-        print pref 
+        pref = request.POST.get("data", None)
         return HttpResponse("1")
     return HttpResponse("0")
     

@@ -922,6 +922,7 @@ $('#btn_logout').click(function(){
 </div>
 
 <div id="dialog-preference" title="Preference">
+  <form id="form-pref">{% csrf_token %}
   <div id="tabs">
     <ul>
       <li><a href="#tabs-1">Std Dev</a></li>
@@ -936,10 +937,10 @@ $('#btn_logout').click(function(){
       <p><b>Compute Standard Deviation with N or N-K</b></p>
       <table>
         <tr><td></td><td width="40">N-K</td><td width="40">N</td></tr>
-        <tr><td>OLS</td><td><input type="radio" name="ols-n-k" checked></td><td><input type="radio" name="ols-n"></td></tr>
-        <tr><td>2SLS</td><td><input type="radio" name="2sls-n-k"></td><td><input type="radio" name="2sls-n" checked></td></tr>
-        <tr><td>GM-Lag</td><td><input type="radio" name="gm-lag-n-k"></td><td><input type="radio" name="gm-lg-n" checked></td></tr>
-        <tr><td>All Other Models</td><td></td><td><input type="radio" name="ols-n" checked></td></tr>
+        <tr><td>OLS</td><td><input type="radio" name="n-k" value="ols" checked></td><td><input type="radio" name="n" id="ols"></td></tr>
+        <tr><td>2SLS</td><td><input type="radio" name="n-k" value="2sls"></td><td><input type="radio" name="n" value="2sls" checked></td></tr>
+        <tr><td>GM-Lag</td><td><input type="radio" name="n-k" value="gm-lag"></td><td><input type="radio" name="n" value="gm-lg" checked></td></tr>
+        <tr><td>All Other Models</td><td></td><td><input type="radio" name="n" value="other" checked></td></tr>
       </table>
     </div>
     <div id="tabs-2">
@@ -962,9 +963,9 @@ $('#btn_logout').click(function(){
         <tr>
           <td>Computation of Inverse</td>
           <td>
-            <select>
-              <option value="gmm-powerexpansion" selected>Power Expansion</option>
-              <option value="gmm-trueinverse">True Inverse</option>
+            <select name="gmm-comp-inv">
+              <option value="power-exp" selected>Power Expansion</option>
+              <option value="true-inv">True Inverse</option>
             </select>
           </td>
         </tr>
@@ -979,21 +980,21 @@ $('#btn_logout').click(function(){
         <tr><th>Diagnostics</th></tr>
         <tr>
           <td>ML Diagnostics</td>
-          <td><input type="checkbox" name="ckb-ml-diag"></td>
+          <td><input type="checkbox" name="ml-diag"></td>
         </tr>
         <tr><th>Methods</th><th></th></tr>
         <tr>
           <td>ML Method</td>
           <td>
-            <select id="ml-method">
-              <option value="ml-full">Full</option>
-              <option value="ml-ord">Ord</option>
+            <select name="ml-method">
+              <option value="full">Full</option>
+              <option value="ord">Ord</option>
             </select>
           </td>
         </tr>
         <tr>
           <td>Tolerance Criterion</td>
-          <td><input type="text" name="txt-ml-tol-cri" value="0.00001"></td>
+          <td><input type="text" name="ml-tol-cri" value="0.00001"></td>
         </tr>
       </table>
     </div>
@@ -1001,11 +1002,11 @@ $('#btn_logout').click(function(){
       <table>
         <tr>
           <td>Order of Spatial Lags for Instruments</td>
-          <td><input id="spinner" name="value" value="1"></td>
+          <td><input id="spinner" name="inst-ord-lag" value="1"></td>
         </tr>
         <tr>
           <td>Include Lags of User-Specified Instruments</td>
-          <td><input type="checkbox" name="ckb-ml-diag" checked></td>
+          <td><input type="checkbox" name="inst-diag" checked></td>
         </tr>
       </table>
     </div>
@@ -1013,15 +1014,15 @@ $('#btn_logout').click(function(){
       <table>
         <tr>
           <td>Show Variance-Covariance Matrix</td>
-          <td><input type="checkbox" name="ckb-out-showVCM"></td>
+          <td><input type="checkbox" name="out-showVCM"></td>
         </tr>
         <tr>
           <td>Save Predicted Values and Residuals</td>
-          <td><input type="checkbox" name="ckb-out-savePR"></td>
+          <td><input type="checkbox" name="out-savePR"></td>
         </tr>
         <tr>
           <td>Save Detailed Model Specification</td>
-          <td><input type="checkbox" name="ckb-out-saveDMS"></td>
+          <td><input type="checkbox" name="out-saveDMS"></td>
         </tr>
       </table>
     </div>
@@ -1029,11 +1030,11 @@ $('#btn_logout').click(function(){
       <table>
         <tr>
           <td>Error by Regimes</td>
-          <td><input type="checkbox" name="ckb-reg-err" checked></td>
+          <td><input type="checkbox" name="regi-err" checked></td>
         </tr>
         <tr>
           <td>Spatial Lag by Regimes</td>
-          <td><input type="checkbox" name="ckb-reg-lag"></td>
+          <td><input type="checkbox" name="regi-lag"></td>
         </tr>
       </table>
     </div>
@@ -1042,24 +1043,25 @@ $('#btn_logout').click(function(){
         <tr><th>Diagnostics</th></tr>
         <tr>
           <td>OLS Diagnostics</td>
-          <td><input type="checkbox" name="ckb-other-ols" checked></td>
+          <td><input type="checkbox" name="other-ols" checked></td>
         </tr>
         <tr>
           <td>White Test (OLS only)</td>
-          <td><input type="checkbox" name="ckb-other-white"></td>
+          <td><input type="checkbox" name="other-white"></td>
         </tr>
         <tr>
           <td>Moran's I of the Residuals</td>
-          <td><input type="checkbox" name="ckb-other-moran"></td>
+          <td><input type="checkbox" name="other-moran"></td>
         </tr>
         <tr><th><b>Data</b></th><th></th></tr>
         <tr>
           <td>Replace Missing Values With</td>
-          <td><input type="text" name="txt-other-miss" value=""></td>
+          <td><input type="text" name="other-miss-val" value=""></td>
         </tr>
       </table>
     </div>
   </div>
+  </form>
 </div>
  
 <script>
@@ -1148,7 +1150,13 @@ $(function() {
         $( this ).dialog( "close" );
       },
       "Save": function() {
-        $( this ).dialog( "close" );
+        $.ajax({
+          url: "../save_spreg_p/",
+          type: "post",
+          data: $("#form-pref").serialize(),
+          success: function( data ) {
+          }
+        });
       },
     }
   });
@@ -1505,8 +1513,8 @@ $(function() {
               post_param['w_type'] = active;
               $.post("../create_weights/", post_param)
               .done(function( data ) {
-                $(this).popupDiv("#divPop", "Create weights done.");
                 fillForms();
+                alert("Create weights done.");
               })
               .fail(function() { alert("Create weights failed."); })
               .always(function(){
