@@ -112,10 +112,11 @@ def save_pdf(request):
                 response['Content-Disposition'] = 'attachment;filename="result.pdf"'
                 p = canvas.Canvas(response, pagesize=letter)
                 textObject = p.beginText()
-                textObject.setTextOrigin(inch, 10*inch)
+                textObject.setTextOrigin(1.3*inch, 7.5*inch)
                 textObject.setFont("Times-Roman", 8)
                 textObject.textLines(text)
                 p.drawText(textObject)
+                p.drawImage(image_location, inch, 8*inch, 4*inch, 2.6*inch)
                 p.showPage()
                 p.save()
                 

@@ -143,9 +143,10 @@ def spatial_regression(request):
         model_id = i
         if len(w_list) == len(models):
             model_id = w_list[i].name
-        model_result[model_id] = {'summary':model.summary,'predy':model.predy.T.tolist()}
+        model_result[model_id] = {'summary':model.summary,'predy':model.predy.T.tolist(),'residuals':model.u.T.tolist()}
     result['report'] = model_result
     result['success'] = 1
+    print result
     return HttpResponse(json.dumps(result))
 
     

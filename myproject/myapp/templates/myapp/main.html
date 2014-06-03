@@ -177,36 +177,100 @@ body {
 <link rel="stylesheet" href="http://jqueryui.com/resources/demos/style.css">
 
 <script type="text/javascript">
- 	
-
-function SelectMap(div) {
-  console.log(div, $(this));
+// fill forms and controls after uploading data files
+function refillCombobox(kv) { }
+function sortKeys() { }
+function fillForms() {
+  var layer_uuid = localStorage.getItem('current_layer');
+  if (  layer_uuid != undefined ){
+    // get fields information
+    $.get("../get_fields/", {"layer_uuid": layer_uuid},function() {
+    }).done(function(fields) {
+      var field_names = [];
+      for ( var key in fields ){
+        field_names.push(key); 
+      }
+      field_names.sort();
+      // fill content for combobox: select ID for weights creation 
+      $('#sel-w-id').find('option').remove().end();
+      $('#sel-w-id').append($('<option>', {value: ""}).text(""));
+      $.each(field_names, function(i, field_name) {
+        if ( fields[field_name] != "String" ) {
+          $('#sel-w-id').append($('<option>', {value: field_name}).text(field_name));
+        }
+      });
+      //InitAutocompCombobox('sel-w-id');
+      //$("#sel-w-id").combobox();
+      // fill content for <ul id="ul-x-variables"></ul> 
+      $('#ul-x-variables').find('li').remove().end();
+      $.each(field_names, function(i, field_name) {
+        if ( fields[field_name] != "String" ) {
+          var item = $('#ul-x-variables').append('<li><p class="name">'+field_name+'</p></li>');
+          console.log(item);
+        }
+      });
+      $( "#vars ul li" ).draggable({
+        helper: "clone"
+      });
+      new List('vars', {valueNames:['name']});
+    });
+    // get weights name:uuid
+    $.get("../get_weights_names/", {"layer_uuid": layer_uuid},function() {
+    }).done(function(data) {
+      var w_names = [];
+      for ( var key in data){
+        w_names.push(key); 
+      }
+      w_names.sort();
+      console.log(w_names);
+      w_combobox= ['#sel-model-w-files', '#sel-kernel-w-files'];
+      $.each(w_combobox, function(i, w_cmb) {
+        $(w_cmb).find('option').remove().end();
+        $.each(w_names, function(j, w_name) {
+          wuuid = data[w_name];
+          $(w_cmb).append($('<option>', {value: wuuid}).text(w_name));
+        });
+      });
+    });
+  }
 }
-///////////////////////////////////////////////////////////////
-// Show map function
-///////////////////////////////////////////////////////////////
+// map function
 var data; // global for testing
+
+function SelectMap(obj) {
+  var slider_id = $(obj).attr("for");
+  if ( slider_id ) {
+    var map_id = slider_id.split("_")[1];
+    var containerID = 'map' + map_id;
+    var layer_id = $('#'+containerID).children(":first").attr("id");
+    localStorage.setItem("current_layer", layer_id);
+    fillForms();
+  }
+}
 
 {% if geodata %}
 var mapCounter = {{ n }};
 {% else %}
-var mapCounter = 1;
+var mapCounter = 0;
 {% endif %}
+
 function CreateMapContainer(jsonFilePath) {
+  mapCounter++;
   var containerID = 'map' + mapCounter;
-  $('#mapslider ul').append("<li'><center>" + jsonFilePath + "<div id="+containerID+" class=map_div onclick='SelectMap(this)></div></center></li>"); 
+  $('#mapslider ul').append("<li><center>" + jsonFilePath + "<div id="+containerID+" class=map_div onclick='SelectMap(this)'></div></center></li>"); 
   $('#mapnav').append("<label for=slides_"+mapCounter+"></label>");
   $('.arrows').append("<label for=slides_"+mapCounter+"></label>");
   $('#mapslider').removeClass('csslider').addClass('csslider');
-  $('.navigation').removeClass('navigation').addClass('navigation');
+  $('#map-arr').removeClass('arrows').addClass('arrows');
+  $('#map-nav').removeClass('navigation').addClass('navigation');
   localStorage[containerID] = jsonFilePath;
-  mapCounter++;
   return containerID;
 }
 
 function SaveMapThumbnail(canvas) {
   var layer_uuid = localStorage.getItem('current_layer');
   if (  layer_uuid != undefined ) {
+    canvas.id = layer_uuid;
     var dataURL = canvas.toDataURL();
     $.ajax({
       type: "POST",
@@ -218,10 +282,6 @@ function SaveMapThumbnail(canvas) {
       }
     }).done(function(data) {
       console.log('saved'); 
-      // If you want the file to be visible in the browser 
-      // - please modify the callback in javascript. All you
-      // need is to return the url to the file, you just saved 
-      // and than put the image in your browser.
     });
   }
 }
@@ -229,178 +289,121 @@ function SaveMapThumbnail(canvas) {
 var w = 600;
 var h = 400;
 function ShowJsonMap(jsonFilePath, content, onSuccess) {
-    //console.log(content);
-    var containerID = CreateMapContainer(jsonFilePath);
-
-    //Load in GeoJSON data
-    var createJsonMap = function(json) {
-        /*
-        if (localStorage.getItem(jsonFilePath) == null) {
-            localStorage.setItem(jsonFilePath, 1);
-            // store the content to indexedDB
-            var fileurl = jsonFilePath;
-            var filename = getFileName(fileurl);
-            var fileid = filename;
-            var filecontent = JSON.stringify(json);
-            addFile(fileid, filename, fileurl, filecontent);
-        }
-        */
-    /*} else {
-        console.log("load from cache:");
-        queryFile(jsonFilePath, function(e) {
-            if (e.target.result) {
-                console.log(e.target.result);
-                jsonContent = e.target.result.filecontent;
-                jsonContent = jQuery.parseJSON(jsonContent);
-                createJsonMap(jsonContent);
-            } else {
-                console.log("load from cache error.");
-            }
+  var containerID = CreateMapContainer(jsonFilePath);
+  //Load GeoJSON data
+  var createJsonMap = function(json) {
+    console.log("create", jsonFilePath);
+    data = json;
+    var canvas = d3.select('#' + containerID)
+          .append("canvas")
+          .attr("width", w)
+          .attr("height", h);
+    var minX = Number.POSITIVE_INFINITY,
+        maxX = Number.NEGATIVE_INFINITY,
+        minY = Number.POSITIVE_INFINITY,
+        maxY = Number.NEGATIVE_INFINITY;
+    json.features.forEach(function(feat,i) {
+      feat.geometry.coordinates.forEach(function(coords,j) {
+        coords.forEach( function( xy,k ) {
+          x = xy[0], y = xy[1];
+          if (x > maxX) {maxX = x;}
+          if (x < minX) {minX = x;}
+          if (y > maxY) {maxY = y;}
+          if (y < minY) {minY = y;}
         });
-    }*/
-        console.log("create", jsonFilePath);
-        //Create SVG element
-        var canvas = d3.select('#' + containerID)
-            .append("canvas")
-            .attr("width", w)
-            .attr("height", h);
-
-        var minX = Number.POSITIVE_INFINITY,
-            maxX = Number.NEGATIVE_INFINITY,
-            minY = Number.POSITIVE_INFINITY,
-            maxY = Number.NEGATIVE_INFINITY;
-        data = json;
-        json.features.forEach(function(feat,i) {
-            feat.geometry.coordinates.forEach(function(coords,j) {
-                coords.forEach(function(xy,k){
-                    x = xy[0], y = xy[1];
-                    if (x > maxX) {maxX = x;}
-                    if (x < minX) {minX = x;}
-                    if (y > maxY) {maxY = y;}
-                    if (y < minY) {minY = y;}
-                });
-            });
-        });
-
-        console.log(minX,maxX,minY,maxY);
-        var xyratio = (maxX-minX)/(maxY-minY);
-        var offsetW = 0.0;
-        var offsetH = 0.0;
-        if (w/h > xyratio) {
-            // canvas is too wide
-            offsetW = (w - h*xyratio)/2.0;
-        } else if (w/h < xyratio) {
-            // canvas is too tall
-            offsetH = (h - w/xyratio)/2.0;
-        }
-
-        var scaleX = d3.scale.linear()
-            .domain([minX,maxX])
-            .range([0, w-offsetW*2]);
-        scaleY = d3.scale.linear()
-            .domain([minY, maxY])
-            .range([h-offsetH*2,0]);
-
-        function matrix(a, b, c, d, tx, ty) {
-            return d3.geo.transform({
-                point: function(x, y) { 
-                    this.stream.point(scaleX(x)+offsetW, scaleY(y)+offsetH); 
-                }});
-        }
-
-        var context = canvas.node().getContext("2d");
-        var path = d3.geo.path().projection(matrix(-1, 0, 0, 1, 0, 0)).context(context);
-
-        context.strokeStyle = "#cccccc";
-        context.fillStyle = "#ffffff";
-
-        json.features.forEach(function(feat,i) {
-            feat.geometry.coordinates.forEach(function(coords,j) {
-                context.beginPath();
-                coords.forEach(function(xy,k){
-                    x = xy[0], y = xy[1];
-                    x = scaleX(x)+offsetW;
-                    y = scaleY(y)+offsetH;
-                    if (k === 0) {
-                        context.moveTo(x,y);
-                    } else {
-                        context.lineTo(x,y);
-                    }
-                });
-                context.closePath();
-                context.stroke();
-            });
-        });
-        console.log("send thumbnail", new Date().getTime() / 1000);
-        //context.fill();
-        if (onSuccess!= undefined) {
-          onSuccess(canvas[0][0]);
-        }
-        
-    };
-    if (content!=undefined) {
-        createJsonMap(content);
-    } else{
-    
-        console.log("load from raw data");
-        var suffix = getSuffix(jsonFilePath);
-        if (suffix === "json" || suffix === "geojson") {
-            d3.json(jsonFilePath, createJsonMap);
-        } else if (suffix === "zip") {
-            FetchZipResource(jsonFilePath, function(data){
-                jsonContent = JSON.parse(data);
-                createJsonMap(jsonContent);
-            });
-        }
+      });
+    });
+    var xyratio = (maxX-minX)/(maxY-minY),
+        offsetW = 0.0,
+        offsetH = 0.0;
+    if (w/h > xyratio) { // too wide
+      offsetW = (w - h*xyratio)/2.0;
+    } else if (w/h < xyratio) { // too tall
+      offsetH = (h - w/xyratio)/2.0;
     }
-      console.log("draw done",new Date().getTime() / 1000);
-} // end function ShowJsonMap()
+    var scaleX = d3.scale.linear()
+          .domain([minX,maxX])
+          .range([0, w-offsetW*2]),
+        scaleY = d3.scale.linear()
+          .domain([minY, maxY])
+          .range([h-offsetH*2,0]);
+    function matrix(a, b, c, d, tx, ty) {
+      return d3.geo.transform({
+        point: function(x, y) { 
+          this.stream.point(scaleX(x)+offsetW, scaleY(y)+offsetH); 
+        }
+      });
+    }
+
+    var context = canvas.node().getContext("2d");
+    var path = d3.geo.path().projection(matrix(-1, 0, 0, 1, 0, 0)).context(context);
+
+    context.strokeStyle = "#cccccc";
+    context.fillStyle = "#ffffff";
+
+    json.features.forEach( function(feat,i) {
+      feat.geometry.coordinates.forEach(function(coords,j) {
+        context.beginPath();
+        coords.forEach( function(xy,k) {
+          var x = xy[0], y = xy[1];
+          x = scaleX(x)+offsetW;
+          y = scaleY(y)+offsetH;
+          if (k === 0) {
+            context.moveTo(x,y);
+          } else {
+            context.lineTo(x,y);
+          }
+        });
+        context.closePath();
+        context.stroke();
+      });
+    });
+    //context.fill();
+    if (onSuccess!= undefined) {
+      // save thumbnail
+      onSuccess(canvas[0][0]);
+    }
+  }; // end createJsonMap
+  if (content!=undefined) {
+    createJsonMap(content);
+  } else {
+    console.log("load from raw data");
+    var suffix = getSuffix(jsonFilePath);
+    if (suffix === "json" || suffix === "geojson") {
+      d3.json(jsonFilePath, createJsonMap);
+    } else if (suffix === "zip") {
+      FetchZipResource(jsonFilePath, function(data){
+        jsonContent = JSON.parse(data);
+        createJsonMap(jsonContent);
+      });
+    }
+  }
+  console.log("draw done",new Date().getTime() / 1000);
+} 
 
 
 var socket;
 var db;
 
-///////////////////////////////////////////////////////////////
-// Init document 
-///////////////////////////////////////////////////////////////
+// Init 
 $(document).ready(function() {
-
+  // init some divs
   $('#btnOpenData').popupDiv('#divPop','Start by click this button to load your data.');
   $('#img-id-chk').hide();
   $('#img-id-nochk').hide();
-  
+
+  // init current working layer if exists  
   {% if n == 0 %} 
   localStorage.removeItem('current_layer');
   {% else %}
   localStorage.setItem('current_layer', '{{geodata0.uuid}}');
   {% endif %}
   
-  function getCookie(name) {
-     var cookieValue = null;
-     if (document.cookie && document.cookie != '') {
-       var cookies = document.cookie.split(';');
-       for (var i = 0; i < cookies.length; i++) {
-         var cookie = jQuery.trim(cookies[i]);
-         // Does this cookie string begin with the name we want?
-         if (cookie.substring(0, name.length + 1) == (name + '=')) {
-             cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-             break;
-         }
-       }
-     }
-    return cookieValue;
-  }
-  //////////////////////////////////////////////////////////////
-  // WebSocket Server Communications
-  //////////////////////////////////////////////////////////////
   // create websocket
   if (! ("WebSocket" in window)) WebSocket = MozWebSocket; // firefox
   socket = new WebSocket("ws://localhost:9000");
-
-  // open the socket
   socket.onopen = function(event) {
       socket.send('{connected:'+ pageid + '}');
-
       // show server response
       socket.onmessage = function(e) {
           // handle different messages
@@ -424,13 +427,9 @@ $(document).ready(function() {
       }
   }
 
-  //////////////////////////////////////////////////////////////
   // Dropbox Plugin
-  //////////////////////////////////////////////////////////////
   var dropboxOptions = {
-      // Required. Called when a user selects an item in the Chooser.
       success: function(files) {
-          //alert("Here's the file link: " + files[0].link)
           var fileLink = files[0].link;
           ShowJsonMap(fileLink, undefined, SaveMapThumbnail);
       },
@@ -438,20 +437,14 @@ $(document).ready(function() {
           $('#progressCont').hide();
       },
       linkType: "direct", // or "preview"
-      // Optional. A value of false (default) limits selection to a single file, while
-      // true enables multiple file selection.
-      multiselect: false, // or true
+      multiselect: true, // or true
       extensions: ['.json', '.geojson', '.zip', '.shp','.shx','.dbf','.prj'],
   };
   var button = Dropbox.createChooseButton(dropboxOptions);
   $("#dropbox_div").append(button);
   $('#dropbox_div').click(function() {});
 
-
-  //////////////////////////////////////////////////////////////
   // DragDrop Plugin
-  //////////////////////////////////////////////////////////////
-
   var reader;
   var progress = document.querySelector('.percent');
 
@@ -491,71 +484,6 @@ $(document).ready(function() {
       }
     }
     return false;
-  }
-  //****************************************************
-  // fill forms and controls after uploading data files
-  //****************************************************
-  function refillCombobox(kv) {
-  }
-  function sortKeys() {
-  }
-  function fillForms() {
-    var layer_uuid = localStorage.getItem('current_layer');
-    if (  layer_uuid != undefined ){
-      //-----------------------------------------------
-      // get fields information
-      //-----------------------------------------------
-      $.get("../get_fields/", {"layer_uuid": layer_uuid},function() {
-      }).done(function(fields) {
-        var field_names = [];
-        for ( var key in fields ){
-          field_names.push(key); 
-        }
-        field_names.sort();
-        // fill content for combobox: select ID for weights creation 
-        $('#sel-w-id').find('option').remove().end();
-        $('#sel-w-id').append($('<option>', {value: ""}).text(""));
-        $.each(field_names, function(i, field_name) {
-          if ( fields[field_name] != "String" ) {
-            $('#sel-w-id').append($('<option>', {value: field_name}).text(field_name));
-          }
-        });
-        //InitAutocompCombobox('sel-w-id');
-        //$("#sel-w-id").combobox();
-        // fill content for <ul id="ul-x-variables"></ul> 
-        $('#ul-x-variables').find('li').remove().end();
-        $.each(field_names, function(i, field_name) {
-          if ( fields[field_name] != "String" ) {
-            var item = $('#ul-x-variables').append('<li><p class="name">'+field_name+'</p></li>');
-            console.log(item);
-          }
-        });
-        $( "#vars ul li" ).draggable({
-          helper: "clone"
-        });
-        new List('vars', {valueNames:['name']});
-      });
-      //-----------------------------------------------
-      // get weights name:uuid
-      //-----------------------------------------------
-      $.get("../get_weights_names/", {"layer_uuid": layer_uuid},function() {
-      }).done(function(data) {
-        var w_names = [];
-        for ( var key in data){
-          w_names.push(key); 
-        }
-        w_names.sort();
-        console.log(w_names);
-        w_combobox= ['#sel-model-w-files', '#sel-kernel-w-files'];
-        $.each(w_combobox, function(i, w_cmb) {
-          $(w_cmb).find('option').remove().end();
-          $.each(w_names, function(j, w_name) {
-            wuuid = data[w_name];
-            $(w_cmb).append($('<option>', {value: wuuid}).text(w_name));
-          });
-        });
-      });
-    }
   }
   function handleFileSelect(evt) {
     $("#"+evt.target.id).css("color", "#bbb");
@@ -609,11 +537,8 @@ $(document).ready(function() {
           if ( data['layer_uuid'] != undefined) {
             localStorage['current_layer']= data["layer_uuid"];
             fillForms();
-            var containerID = 'map' + mapCounter;
-            SaveMapThumbnail($('#containerID canvas'));
           }
         } catch(e){console.log(e);}
-        console.log("upload return:",this.responseText);
         // Ensure that the progress bar displays 100% at the end.
         progress.style.width = '100%';
         progress.textContent = '100%';
@@ -641,9 +566,7 @@ $(document).ready(function() {
   dropZone.addEventListener('dragleave', handleDragOut, false);
   dropZone.addEventListener('drop', handleFileSelect, false);
 
-  //////////////////////////////////////////////////////////////
   // Buttons 
-  //////////////////////////////////////////////////////////////
   $('#btnOpenData').css("opacity",1);
   $('#btnAbout').css("opacity",1);
   $('.block_button').mouseenter(function(){
@@ -717,7 +640,6 @@ $(document).ready(function() {
    
 <script>
 $('#divPop').hide();
-//$('#divPop').hide();
 jQuery.fn.popupDiv = function (divToPop, text) {
   var pos=$(this).offset();
   var h=$(this).height();
@@ -804,25 +726,31 @@ $('#btn_logout').click(function(){
     <input type="radio" name="slides" id="slides_2" />
     <input type="radio" name="slides" id="slides_3" />
     <input type="radio" name="slides" id="slides_4" />
+    <input type="radio" name="slides" id="slides_5" />
+    <input type="radio" name="slides" id="slides_6" />
+    <input type="radio" name="slides" id="slides_7" />
+    <input type="radio" name="slides" id="slides_8" />
+    <input type="radio" name="slides" id="slides_9" />
+    <input type="radio" name="slides" id="slides_10" />
     <ul>
     {% if geodata %}
         {% for i,layer in geodata.iteritems %}
         <li>
           <center> {{layer.origfilename}}
-            <div id="map{{i}}" class="map_div"><img onclick="SelectMap(this)"id="{{layer.uuid}}" src="{{url_prefix}}{{layer.thumbnail}}"></div>
+            <div id="map{{i}}" class="map_div"><img id="{{layer.uuid}}" src="{{url_prefix}}{{layer.thumbnail}}"></div>
           </center>
         </li>
         {% endfor %}
     {% endif %}
     </ul>
-    <div class="arrows">
+    <div id="map-arr" class="arrows">
     {% if geodata %}
         {% for i in nn %}
-        <label for="slides_{{i}}"></label>
+        <label onclick="SelectMap(this)" for="slides_{{i}}"></label>
         {% endfor %}
     {% endif %}
     </div>
-    <div class="navigation">
+    <div id="map-nav" class="navigation">
         <div id="mapnav">
         {% if geodata %}
             {% for i in nn %}
@@ -888,7 +816,7 @@ $('#btn_logout').click(function(){
       </td>
     </tr>
     <tr>
-      <td valign=top>
+      <td valign="top">
         <div id="model_spec">
           <h1 class="ui-widget-header">Model Specifications</h1>
           <p>Drag and drop variables from the Variables Panel.<br>Double click variable to remove it.</p>
@@ -961,8 +889,6 @@ $('#btn_logout').click(function(){
             <h2><a href="#">Model Weights (Optional) </a></h2>
             <div id="w_model_box">
               <select id="sel-model-w-files" multiple="multiple">
-                <option value="NAT.gal">NAT.gal</option>
-                <option value="NAT.knn4.gwt">NAT.knn4.gwt</option>
               </select>
             </div>
           </div>
@@ -970,8 +896,6 @@ $('#btn_logout').click(function(){
             <h2><a href="#">Kernel Weights (Optional) </a></h2>
             <div id="w_kernel_box">
               <select id="sel-kernel-w-files" multiple="multiple">
-                <option value="NAT.gal">NAT.gal</option>
-                <option value="NAT.knn4.gwt">NAT.knn4.gwt</option>
               </select>
             </div>
           </div>
@@ -987,12 +911,6 @@ $('#btn_logout').click(function(){
             </button>
             <ul id="ul-x-variables" class="list">
               <li><p class="name">x1</p></li>
-              <li><p class="name">x2</p></li>
-              <li><p class="name">x3</p></li>
-              <li><p class="name">x4</p></li>
-              <li><p class="name">x5</p></li>
-              <li><p class="name">x6</p></li>
-              <li><p class="name">x7</p></li>
             </ul>
           </div>
         </div>
@@ -1010,8 +928,8 @@ $('#btn_logout').click(function(){
     <div id="tabs-1" style="height:320px">
       <textarea id="txt-spreg-summary" style="resize: none; width: 100%; padding: 10px; border: none; height: 100%; margin: -10px; border: 1px solid #ccc;"> </textarea>
     </div>
-    <div id="tabs-2" style="height:320px">
-      <textarea id="txt-spreg-predy" style="resize: none; width: 100%; padding: 10px; border: none; height: 100%; margin: -10px; border: 1px solid #ccc;"> </textarea>
+    <div id="tabs-2" style="height:100%">
+      <div id="txt-spreg-predy" > </div>
       <button id="btn-save-predy">Save values to datasource</button>
     </div>
   </div>
@@ -1203,11 +1121,26 @@ $(function() {
   // model type
   $('input:radio[name=model_type]').click( function() {
     var model_type = $(this).val();
-    console.log(model_type);
     if ( model_type == 0 ) {
-      $('#ml').prop('disabled', true);
-      $('#gmm').prop('disabled', true);
-      $('#het').prop('disabled', true);
+      $("input[name='method'], input[name='stderror']").prop('disabled', false);
+      $('#ml, #gmm, #het').prop('disabled', true);
+      $('#ols').select();
+      $("input[name='stderror']").prop('checked', false);
+    } else if ( model_type == 1 ) {
+      $("input[name='method'], input[name='stderror']").prop('disabled', false);
+      $('#ols, #het').prop('disabled', true);
+      $('#gmm').select();
+      $("input[name='stderror']").prop('checked', false);
+    } else if ( model_type == 2 ) {
+      $("input[name='method'], input[name='stderror']").prop('disabled', false);
+      $('#ols, #white, #hac').prop('disabled', true);
+      $('#gmm').select();
+      $("input[name='stderror']").prop('checked', false);
+    } else if ( model_type == 3 ) {
+      $("input[name='method'], input[name='stderror']").prop('disabled', false);
+      $('#ols, #ml, #white, #hac').prop('disabled', true);
+      $('#gmm').select();
+      $("input[name='stderror']").prop('checked', false);
     }
   });
   $('input:radio[name=model_type]:first').click();
@@ -1318,24 +1251,28 @@ $(function() {
     params = { 'layer_uuid': layer_uuid, 'w': w_list, 'wk': wk_list, 'type': model_type, 'method': method, 'error': error, 'x': x, 'y': y, 'ye': ye, "h": h, "r": r, "t": t, csrfmiddlewaretoken: '{{ csrf_token }}'};
     console.log(params);
     $.post("../spatial_regression/", params, function(){
-        // spinning for run 
           $('#btn_result').hide();
       }).done(function(data) {
-        // get results
-        console.log(data);
         try {
           data = JSON.parse(data);
           if ( data['success'] == 1 ) {
             $('#btn_result').show();
             if ( data['report'] ) {
+              var predy = "",
+                  summary = "";
               $.each(data['report'], function(id, result) {
-                $('#txt-spreg-summary').val(result['summary']);
-                var predy = "";
-                $.each(result['predy'][0], function(i, val){
-                  predy += val + "\n";
-                });
-                $('#txt-spreg-predy').val(predy);
+                summary += "Report" + id + "\n\n"+result['summary'] + "\n\n";
+                
+                predy += "<b>Report " + id + "</b><br/>";
+                predy += "<table><tr><th>Predicted Values</th><th>Residuals</th></tr>";
+                var n = result['predy'][0].length;
+                for ( var i=0; i< n; i++ ) {
+                  predy += "<tr><td>" + result['predy'][0][i] + "</td><td>" + result['residuals'][0][i] + "</td></tr>";
+                }
+                predy += "</table><br/><br/>";
               });
+              $('#txt-spreg-predy').html(predy);
+              $('#txt-spreg-summary').val(summary);
             }
             $('#btn_result').popupDiv('#divPop','Click this button to see result.');
           }
@@ -1598,7 +1535,5 @@ $(function() {
   </script>
 </div> 
 
-<script>
-</script>
 </body>
 </html>
