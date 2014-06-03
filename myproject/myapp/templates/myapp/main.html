@@ -128,34 +128,25 @@ body {
     border: 1px solid #bbb;
     border-radius: 5px;
     padding: 25px;
-    text-align: center;
-    font: 20pt bold 'Vollkorn';
-    color: #bbb;
-}
-.block_button {
-    opacity: 0.5;
+    opacity: 0.2;
     background: #ccc;
     background-repeat: no-repeat;
     background-position: center;
 }
-#btnOpenData{
-    background-image: url({{url_prefix}}/media/img/add-file.png);
-}
-#btnSave {
-    background-image: url({{url_prefix}}/media/img/ToolBar-save-project_disabled.png);
-}
-#btnShowTable {
-    background-image: url({{url_prefix}}/media/img/ToolBar-table.png);
-}
-#btnCreateWeights {
-    background-image: url({{url_prefix}}/media/img/ToolBar-new-weights.png);
-}
-#btnSpatialRegression {
-    background-image: url({{url_prefix}}/media/img/ToolBar-regression.png);
-}
-#btnAbout {
-    background-image: url({{url_prefix}}/media/img/about.png);
-}
+#btnOpenData {background-image: url({{url_prefix}}/media/img/add-file.png);}
+#btnAddLayer {background-image: url({{url_prefix}}/media/img/addLayer.png);}
+#btnSave {background-image: url({{url_prefix}}/media/img/save.png);}
+#btnShowTable {background-image: url({{url_prefix}}/media/img/table.png);}
+#btnCreateW {background-image: url({{url_prefix}}/media/img/newW.png);}
+#btnWHistogram{background-image: url({{url_prefix}}/media/img/wHist.png);}
+#btnKDE{background-image: url({{url_prefix}}/media/img/kde.png);}
+#btnNewMap{background-image: url({{url_prefix}}/media/img/nmap.png);}
+#btnScatterPlot{background-image: url({{url_prefix}}/media/img/scatter.png);}
+#btnHist{background-image: url({{url_prefix}}/media/img/hist.png);}
+#btnPCP{background-image: url({{url_prefix}}/media/img/pcp.png);}
+#btnLISA{background-image: url({{url_prefix}}/media/img/lisa.png);}
+#btnSpreg{background-image: url({{url_prefix}}/media/img/spreg.png);}
+#btnAbout {background-image: url({{url_prefix}}/media/img/about.png);}
 </style>
 
 <link rel="stylesheet" href="{{url_prefix}}/media/css/csslider.css" />
@@ -180,6 +171,9 @@ body {
 // fill forms and controls after uploading data files
 function refillCombobox(kv) { }
 function sortKeys() { }
+function toggleTubar(isPts) {
+  
+}
 function fillForms() {
   var layer_uuid = localStorage.getItem('current_layer');
   if (  layer_uuid != undefined ){
@@ -567,22 +561,10 @@ $(document).ready(function() {
   dropZone.addEventListener('drop', handleFileSelect, false);
 
   // Buttons 
-  $('#btnOpenData').css("opacity",1);
-  $('#btnAbout').css("opacity",1);
-  $('.block_button').mouseenter(function(){
-    if ($(this).attr("id") == 'btnOpenData' || 
-        $(this).attr("id") == 'btnAbout' || 
-        localStorage.getItem('current_layer') != null) {
-      $(this).css("border","1px solid #333");
-    }
-  });
-  $('.block_button').mouseleave(function(){
-    if ($(this).attr("id") == 'btnOpenData' || 
-        $(this).attr("id") == 'btnAbout' || 
-        localStorage.getItem('current_layer') != null) {
-      $(this).css("border","0px solid #333");
-    }
-  });
+  $('#btnOpenData, #btnAbout').css("opacity",1);
+  if ( localStorage["current_layer"] ) {
+    $('#btnCreateW, #btnSpreg').css("opacity",1);
+  }
   $('#file_div').hide();
   $('#btnOpenData').click(function(){
     $('#file_div').slideToggle("slow");  
@@ -600,12 +582,12 @@ $(document).ready(function() {
           }
       });
   });
-  $('#btnCreateWeights').click(function(){
+  $('#btnCreateW').click(function(){
     // pop-up weights creation dialog
     //localStorage.getItem('current_layer') != null) {
     $('#dialog-weights').dialog('open');
   });
-  $('#btnSpatialRegression').click(function(){
+  $('#btnSpreg').click(function(){
     // pop-up weights creation dialog
     //localStorage.getItem('current_layer') != null) {
     $('#dialog-regression').dialog('open');
@@ -680,14 +662,19 @@ $('#btn_logout').click(function(){
 </script>
 <div id="toolbar">
     <div style="clear: left;"></div>
-    <table class="toolbar_tbl">
+    <table class="toolbar_tbl" align="center">
         <tr>
            <td><div class="block_button" id="btnOpenData"></div></td> 
+           <td><div class="block_button" id="btnAddLayer"></div></td> 
            <td><div class="block_button" id="btnSave"></div></td> 
            <td><div class="block_button" id="btnShowTable"></div></td> 
-           <td><div class="block_button" id="btnCreateWeights"></div></td> 
-           <td><div class="block_button" id="btnHistogram"></div></td> 
+           <td><div class="block_button" id="btnCreateW"></div></td> 
+           <td><div class="block_button" id="btnWHistogram"></div></td> 
+           <td><div class="block_button" id="btnNewMap"></div></td> 
+           <td><div class="block_button" id="btnKDE"></div></td> 
            <td><div class="block_button" id="btnScatterPlot"></div></td> 
+           <td><div class="block_button" id="btnHist"></div></td> 
+           <td><div class="block_button" id="btnPCP"></div></td> 
            <td><div class="block_button"></div></td> 
            <td><div class="block_button"></div></td> 
            <td><div class="block_button"></div></td> 
@@ -696,9 +683,8 @@ $('#btn_logout').click(function(){
            <td><div class="block_button"></div></td> 
            <td><div class="block_button"></div></td> 
            <td><div class="block_button"></div></td> 
-           <td><div class="block_button"></div></td> 
-           <td><div class="block_button"></div></td> 
-           <td><div class="block_button"  id="btnSpatialRegression"></div></td> 
+           <td><div class="block_button" id="btnLISA"></div></td> 
+           <td><div class="block_button"  id="btnSpreg"></div></td> 
            <td><div class="block_button" id="btnAbout"></div></td> 
         </tr>
     </table>
@@ -1153,6 +1139,9 @@ $(function() {
     dialogClass: "dialogWithDropShadow",
     buttons: {
       "Restore Defaults": function() {
+        $( this ).dialog( "close" );
+      },
+      "Restore System Defaults": function() {
         $( this ).dialog( "close" );
       },
       Cancel: function() {

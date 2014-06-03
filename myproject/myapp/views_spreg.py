@@ -21,12 +21,25 @@ from views_utils import helper_get_W_list
 
 logger = logging.getLogger(__name__)
 
+def save_spreg_preference(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    if request.method == 'POST':
+        pref = request.POST.get("preference", None)
+        print pref 
+        return HttpResponse("1")
+    return HttpResponse("0")
     
 def spatial_regression(request):
     userid = request.session.get('userid', False)
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+         
     result = {"success":0}
+    
+    if request.method != 'POST':
+        return HttpResponse(json.dumps(result))
     # Get param
     layer_uuid = request.POST.get("layer_uuid",None)
     wuuids_model = request.POST.getlist("w[]")
