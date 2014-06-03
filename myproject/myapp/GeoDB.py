@@ -40,6 +40,19 @@ def IsLayerExist(layer_uuid):
     else:
         return False
 
+def IsFieldUnique(layer_uuid, field_name):
+    sql = "SELECT count(%s),count(distinct %s) from %s" % (field_name, field_name, layer_uuid)
+    print sql, DS
+    tmp_layer = DS.ExecuteSQL(str(sql))
+    feature = tmp_layer.GetNextFeature()
+    all_n = feature.GetFieldAsInteger(0) 
+    uniq_n = feature.GetFieldAsInteger(1)
+    print all_n, uniq_n
+    if all_n == uniq_n:
+        return True
+    else: 
+        return False
+    
 def GetDataSource(drivername, filepath):
     driver = ogr.GetDriverByName(drivername)
     ds = driver.Open(filepath, 0)

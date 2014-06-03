@@ -1,3 +1,42 @@
+jQuery.download = function(url, data, method) {
+    //url and data options required
+    if (url && data) { 
+        //data can be string of parameters or array/object
+        data = typeof data == 'string' ? data : jQuery.param(data);
+        //split params into form inputs
+        var inputs = '';
+        jQuery.each(data.split('&'), function() { 
+            var pair = this.split('=');
+            inputs += '<input type="hidden" name="' + pair[0] +
+                '" value="' + pair[1] + '" />'; 
+        });
+        //send request
+        jQuery('<form action="' + url +
+            '" method="' + (method || 'post') +'">' + inputs + '</form>')
+        .appendTo('body').submit().remove();
+    };
+}
+
+jQuery.GetTextsFromObjs = function(objs) {
+  var texts = [];
+  objs.each(function(i, obj){
+    if (obj.className != "placeholder") {
+      texts.push($(obj).text());
+    }
+  });
+  return texts;
+}
+
+jQuery.GetValsFromObjs = function(objs) {
+  var vals = [];
+  objs.each(function(i, obj){
+    if (obj.className != "placeholder") {
+      vals.push($(obj).val());
+    }
+  });
+  return vals;
+}
+
 function guid() {
   function s4() {
     return Math.floor((1 + Math.random()) * 0x10000)

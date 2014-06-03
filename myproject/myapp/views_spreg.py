@@ -25,13 +25,11 @@ logger = logging.getLogger(__name__)
 def spatial_regression(request):
     userid = request.session.get('userid', False)
     if not userid:
-        return HttpResponseRedirect('/myapp/login/') 
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     result = {"success":0}
-    print request.POST
     # Get param
     layer_uuid = request.POST.get("layer_uuid",None)
     wuuids_model = request.POST.getlist("w[]")
-    print wuuids_model
     wuuids_kernel = request.POST.getlist("wk[]")
     model_type = request.POST.get("type",None)
     if model_type: model_type = int(model_type)
@@ -39,7 +37,6 @@ def spatial_regression(request):
     if model_method: model_method = int(model_method)
     error = request.POST.getlist("error[]")
     if len(error)==0: error = [0,0,0]
-    print error
     white = int(error[0])
     hac = int(error[1])
     kp_het = int(error[2])
@@ -49,8 +46,8 @@ def spatial_regression(request):
     name_h = request.POST.getlist("h[]")
     name_r = request.POST.get("r",None) # one col
     name_t = request.POST.get("t",None) # one col
-    
-    print name_y, name_x, name_ye, name_h, name_r, name_t
+   
+    print request.POST 
     
     if not layer_uuid and not name_y and not name_x and model_type not in [0,1,2,3] and \
        model_method not in [0,1,2]:
@@ -60,31 +57,23 @@ def spatial_regression(request):
     # These options are not available yet....
     s = None
     name_s = None
-   
     mtypes = {0: 'Standard', 1: 'Spatial Lag', 2: 'Spatial Error', \
               3: 'Spatial Lag+Error'}    
     model_type = mtypes[model_type]
     method_types = {0: 'ols', 1: 'gm', 2: 'ml'}
     method = method_types[model_method]
-    
-    print wuuids_model
     w_list = helper_get_W_list(wuuids_model)
     wk_list = helper_get_W_list(wuuids_kernel)
-   
-    print w_list, wk_list 
     LM_TEST = False
     if len(w_list) > 0 and model_type in ['Standard', 'Spatial Lag']:
         LM_TEST = True
-    
     request_col_names = name_x
     request_col_names.append(name_y)
     if name_ye: request_col_names += name_ye
     if name_h: request_col_names += name_h
     if name_r: request_col_names.append(name_r)
     if name_t: request_col_names.append(name_t)
-    print layer_uuid, request_col_names    
     data = GeoDB.GetTableData(str(layer_uuid), request_col_names)
-    print name_y
     y = np.array([data[name_y]]).T
     ye = np.array([data[name] for name in name_ye]).T if name_ye else None
     x = np.array([data[name] for name in name_x]).T
@@ -93,19 +82,14 @@ def spatial_regression(request):
     t = np.array(data[name_t]) if name_t else None
     #print y, ye, x, h, r, t 
     layer_name = Geodata.objects.get(uuid=layer_uuid).origfilename
-    print layer_name  
     config = DEFAULT_SPREG_CONFIG
     try:
         preference = Preference.objects.get(userid=userid)
-        print preference 
         if preference: 
             config = preference.spreg 
     except:
         pass
     predy_resid = None # not write to file
-    print "y.shape", y.shape
-    print "x.shape", x.shape
-    print w_list
     models = Spmodel(
         name_ds=layer_name,
         w_list=w_list,
@@ -155,7 +139,6 @@ def spatial_regression(request):
         method=method
     ).output
     model_result = {} 
-    print w_list
     for i,model in enumerate(models):
         model_id = i
         if len(w_list) == len(models):
@@ -163,7 +146,6 @@ def spatial_regression(request):
         model_result[model_id] = {'summary':model.summary,'predy':model.predy.T.tolist()}
     result['report'] = model_result
     result['success'] = 1
-    print result
     return HttpResponse(json.dumps(result))
 
     

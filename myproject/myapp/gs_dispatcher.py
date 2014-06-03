@@ -1670,6 +1670,9 @@ model_getter = Wildcard_Dict()
 model_getter[('Standard', False, '*', False, 'ols')] = get_OLS
 model_getter[('Standard', False, '*', True, 'ols')] = get_OLS_regimes
 model_getter[('Standard', True, '*', False, 'gm')] = get_TSLS
+model_getter[('Standard', False, '*', False, 'ml')] = get_error_msg
+model_getter[('Standard', False, '*', True, 'ml')] = get_error_msg
+
 model_getter[('Spatial Lag', True, '*', False, 'gm')] = get_GM_Lag_endog
 model_getter[('Spatial Lag', False, '*', False, 'gm')] = get_GM_Lag_noEndog
 model_getter[('Spatial Error', True, True,
@@ -1705,8 +1708,6 @@ model_getter[('Spatial Lag+Error', True, False,
               True, 'gm')] = get_GM_Combo_endog_regimes
 model_getter[('Spatial Lag+Error', False, False,
               True, 'gm')] = get_GM_Combo_noEndog_regimes
-model_getter[('Standard', False, '*', False, 'ml')] = get_error_msg
-model_getter[('Standard', False, '*', True, 'ml')] = get_error_msg
 model_getter[('Spatial Lag', False, '*', False, 'ml')] = get_ML_Lag
 model_getter[('Spatial Lag', False, '*', True, 'ml')] = get_ML_Lag_regimes
 model_getter[('Spatial Error', False, '*', False, 'ml')] = get_ML_Error

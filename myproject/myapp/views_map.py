@@ -105,7 +105,7 @@ def upload_canvas(request):
     import base64, cStringIO, re
     userid = request.session.get('userid', False)
     if not userid:
-        return HttpResponseRedirect('/myapp/login/') 
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'POST': 
         layer_uuid = request.POST.get('layer_uuid',None)
         if layer_uuid:
@@ -128,3 +128,5 @@ def upload_canvas(request):
                     return HttpResponse("OK")
 
     return HttpResponse("ERROR")
+
+    
