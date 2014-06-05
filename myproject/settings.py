@@ -58,7 +58,7 @@ USE_L10N = True
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
 
-URL_PREFIX = '/websda'
+URL_PREFIX = '/xun'
 
 GEODATA_PATH = PROJECT_ROOT + '/database/geodata.sqlite'
 # Absolute filesystem path to the directory that will hold user-uploaded files.

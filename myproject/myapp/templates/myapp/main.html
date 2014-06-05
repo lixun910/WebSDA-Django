@@ -164,8 +164,8 @@ body {
 <script src="{{url_prefix}}/media/js/jsonmap.js"></script>
 <script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="50dk6qp6nc2fcxs"></script>
 
-<link rel="stylesheet" href="{{url_prefix}}/media/css/jquery-ui.css">
-<script src="{{url_prefix}}/media/js/jquery-ui.js"></script>
+<link rel="stylesheet" href="{{url_prefix}}/media/css/{{theme_jquery}}/jquery-ui-1.10.4.custom.min.css">
+<script src="{{url_prefix}}/media/js/jquery-ui-1.10.4.custom.min.js"></script>
 <script src="{{url_prefix}}/media/js/list.min.js"></script>
 
 <script type="text/javascript">
@@ -1151,10 +1151,6 @@ $(function() {
         $( this ).dialog( "close" );
       },
       "Save": function() {
-<<<<<<< HEAD
-        
-        $( this ).dialog( "close" );
-=======
         $.ajax({
           url: "../save_spreg_p/",
           type: "post",
@@ -1162,7 +1158,6 @@ $(function() {
           success: function( data ) {
           }
         });
->>>>>>> FETCH_HEAD
       },
     }
   });
