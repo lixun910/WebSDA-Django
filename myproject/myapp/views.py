@@ -35,7 +35,8 @@ def login(request):
          
     return render_to_response(
         'myapp/login.html',{
-            'url_prefix': settings.URL_PREFIX\
+            'url_prefix': settings.URL_PREFIX,\
+            'theme_jquery': settings.THEME_JQUERY,
         },
         context_instance=RequestContext(request)
     )
@@ -59,7 +60,8 @@ def main(request):
             'userid': userid, 'geodata': geodata_content, \
             'geodata0': first_geodata,'n': len(geodata), \
             'nn':range(1,len(geodata)+1),\
-            'url_prefix': settings.URL_PREFIX\
+            'url_prefix': settings.URL_PREFIX,\
+            'theme_jquery': settings.THEME_JQUERY,
             },
         context_instance=RequestContext(request)
     )

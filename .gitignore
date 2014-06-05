@@ -13,3 +13,5 @@
 geodata.sqlite
 
 myproject/database/geodata.sqlite
+
+*.DS_Store
