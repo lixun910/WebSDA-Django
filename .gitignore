@@ -11,3 +11,5 @@
 *.png
 *.sqlite3
 geodata.sqlite
+
+myproject/database/geodata.sqlite
