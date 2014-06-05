@@ -10,3 +10,4 @@
 *.jpeg
 *.png
 *.sqlite3
+geodata.sqlite

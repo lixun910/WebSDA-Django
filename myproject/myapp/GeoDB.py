@@ -41,13 +41,13 @@ def IsLayerExist(layer_uuid):
         return False
 
 def IsFieldUnique(layer_uuid, field_name):
-    sql = "SELECT count(%s),count(distinct %s) from %s" % (field_name, field_name, layer_uuid)
+    sql = "SELECT count(%s),count(distinct %s) from '%s'" % (field_name, field_name, layer_uuid)
     print sql, DS
     tmp_layer = DS.ExecuteSQL(str(sql))
+    tmp_layer.ResetReading()
     feature = tmp_layer.GetNextFeature()
     all_n = feature.GetFieldAsInteger(0) 
     uniq_n = feature.GetFieldAsInteger(1)
-    print all_n, uniq_n
     if all_n == uniq_n:
         return True
     else: 
