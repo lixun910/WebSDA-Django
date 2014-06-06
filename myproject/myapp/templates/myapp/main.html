@@ -194,30 +194,24 @@ function fillForms() {
           $('#sel-w-id').append($('<option>', {value: field_name}).text(field_name));
         }
       });
-      //InitAutocompCombobox('sel-w-id');
-      //$("#sel-w-id").combobox();
-      // fill content for <ul id="ul-x-variables"></ul> 
       $('#ul-x-variables').find('li').remove().end();
       $.each(field_names, function(i, field_name) {
         if ( fields[field_name] != "String" ) {
           var item = $('#ul-x-variables').append('<li><p class="name">'+field_name+'</p></li>');
-          console.log(item);
         }
       });
-      $( "#vars ul li" ).draggable({
-        helper: "clone"
-      });
+      $( "#vars ul li" ).draggable({ helper: "clone" });
       new List('vars', {valueNames:['name']});
     });
     // get weights name:uuid
     $.get("../get_weights_names/", {"layer_uuid": layer_uuid},function() {
     }).done(function(data) {
       var w_names = [];
-      for ( var key in data){
+      for ( var key in data) {
         w_names.push(key); 
       }
       w_names.sort();
-      console.log(w_names);
+      console.log("get_weights_names:",w_names);
       w_combobox= ['#sel-model-w-files', '#sel-kernel-w-files'];
       $.each(w_combobox, function(i, w_cmb) {
         $(w_cmb).find('option').remove().end();
@@ -276,7 +270,7 @@ function SaveMapThumbnail(canvas) {
          csrfmiddlewaretoken: '{{ csrf_token }}',
       }
     }).done(function(data) {
-      console.log('saved'); 
+      console.log('canvas saved'); 
     });
   }
 }
@@ -287,7 +281,7 @@ function ShowJsonMap(jsonFilePath, content, onSuccess) {
   var containerID = CreateMapContainer(jsonFilePath);
   //Load GeoJSON data
   var createJsonMap = function(json) {
-    console.log("create", jsonFilePath);
+    console.log("draw map", jsonFilePath);
     data = json;
     var canvas = d3.select('#' + containerID)
           .append("canvas")
@@ -373,7 +367,6 @@ function ShowJsonMap(jsonFilePath, content, onSuccess) {
       });
     }
   }
-  console.log("draw done",new Date().getTime() / 1000);
 } 
 
 
@@ -417,7 +410,7 @@ $(document).ready(function() {
                   });
               }
           } catch (err) {
-              console.error("Parsing error:", err);            
+              console.error("Parsing WebSOcket response error:", err);            
           }
       }
   }
@@ -492,7 +485,6 @@ $(document).ready(function() {
     var formData = new FormData();
     var files = evt.dataTransfer.files; // FileList object.
     $.each(files, function(i, f) {
-      console.log(f, f.name, f.size)
       formData.append('docfile', f, f.name);
       var fileurl = "local://" + f.name + f.size;
       var suffix = getSuffix(f.name);
@@ -513,7 +505,6 @@ $(document).ready(function() {
         reader.onloadend =  function(evt) {
           if (evt.target.readyState == FileReader.DONE) {
             var data = evt.target.result;
-            console.log("showjsonmap");
             ShowJsonMap(fileurl, JSON.parse(data), SaveMapThumbnail);
           }
         };
@@ -576,7 +567,6 @@ $(document).ready(function() {
               var map_id = "map"+ obj.id.slice(-1);
               var map_url = localStorage[map_id];
               if (map_url) {
-                  console.log("popup");
                   window.open("template_json_map.html?json="+map_url,"");
               }
               return;
@@ -656,7 +646,6 @@ jQuery.fn.popupDiv = function (divToPop, text) {
 $('#btn_logout').click(function(){
   $.post("../logout/", {csrfmiddlewaretoken: '{{ csrf_token }}'})
   .done(function(data) {
-    console.log(data);
     location.reload();
   });
 });
@@ -1247,7 +1236,6 @@ $(function() {
     });
     // run model
     params = { 'layer_uuid': layer_uuid, 'w': w_list, 'wk': wk_list, 'type': model_type, 'method': method, 'error': error, 'x': x, 'y': y, 'ye': ye, "h": h, "r": r, "t": t, csrfmiddlewaretoken: '{{ csrf_token }}'};
-    console.log(params);
     $.post("../spatial_regression/", params, function(){
           $('#btn_result').hide();
       }).done(function(data) {
@@ -1469,7 +1457,6 @@ $(function() {
             var cont_type = $('#sel-cont-type').find(":selected").val(),
                 cont_order = $('#spn-cont-order').val(),
                 cont_ilo = $('#cbx-cont-ilo').prop("checked");
-            console.log(cont_type, cont_order, cont_ilo);
             post_param['cont_type'] = cont_type;
             post_param['cont_order'] = cont_order;
             post_param['cont_ilo'] = cont_ilo;
@@ -1487,7 +1474,6 @@ $(function() {
               dist_value = $('#txt-dist-thr').val() + "," + $('#spn-pow-idst').val();
             }
             
-            console.log(dist_metric, dist_method, dist_value);
             post_param['dist_metric'] = dist_metric;
             post_param['dist_method'] = dist_method;
             post_param['dist_value'] = dist_value;
@@ -1495,7 +1481,6 @@ $(function() {
           } else if ( active == 2) {
             var kernel_type = $("#sel-kel-type").val(),
                 kernel_nn = $("#txt-kel-nn").val();
-            console.log( kernel_type, kernel_nn); 
             post_param['kernel_type'] = kernel_type;
             post_param['kernel_nn'] = kernel_nn;
             

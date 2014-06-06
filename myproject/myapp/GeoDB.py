@@ -67,7 +67,7 @@ def GetMetaData(layername, drivername=None, filepath=None):
     meta_data = dict()
     # shape info
     meta_data['bbox'] = lyr.GetExtent()
-    meta_data['geom_type'] = lyr.GetGeomType()
+    meta_data['geom_type'] = lyr.GetLayerDefn().GetGeomType()
     
     # table info
     lyrDefn = lyr.GetLayerDefn()

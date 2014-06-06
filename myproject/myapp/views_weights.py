@@ -77,11 +77,15 @@ def create_weights(request):
         try:
             neighbors = json.dumps(w.neighbors)
         except:
-            neighbors = { str(k):v for k,v in w.neighbors.iteritems() }
+            neighbors = {}
+            for k,v in w.neighbors.iteritems():
+                neighbors[str(k)] = v
         try:
             weights = json.dumps(w.weights)
         except:
-            weights = { str(k):list(v) for k,v in w.weights.iteritems() }
+            neighbors = {}
+            for k,v in w.weights.iteritems():
+                neighbors[str(k)] = v
         
         new_w_item = Weights(uuid=wuuid, userid=userid, \
                              shpfilename=shpfilename, name=w_name, n=w.n,\
