@@ -378,6 +378,7 @@ $(document).ready(function() {
   // init some divs
   $('#btnOpenData').popupDiv('#divPop','Start by click this button to load your data.');
   $('#img-id-chk').hide();
+  $('#img-id-spin').hide();
   $('#img-id-nochk').hide();
 
   // init current working layer if exists  
@@ -1314,7 +1315,8 @@ $(function() {
         <option value="Y">Y</option>
       </select>
     <img id="img-id-chk" src="{{url_prefix}}/media/img/checkmark.png">
-    <img id="img-id-nochk" src="{{url_prefix}}/media/img/uncheckmark.gif"></td>
+    <img id="img-id-nochk" src="{{url_prefix}}/media/img/uncheckmark.gif">
+    <img id="img-id-spin" src="{{url_prefix}}/media/img/loading_small.gif"></td>
     </tr>
   </table>
   <br/>
@@ -1402,26 +1404,25 @@ $(function() {
   <script>
     $('.dlg-loading').hide();
     $('#dist-slider').slider();
-    $('#spn-pow-idst').spinner();
-    $('#spn-cont-order').spinner();
-    $('#spn-dist-knn').spinner();
+    $('#spn-pow-idst, #spn-cont-order, #spn-dist-knn').spinner();
     $('#tabs-dlg-weights').tabs();
     $('#sel-w-id').prop("selectedIndex", -1);
     $('#sel-w-id').change(function() {
       var layer_uuid = localStorage['current_layer'];
       var id_name = $('#sel-w-id').val();
-      if ( id_name == "" ) {
-        $("#img-id-nochk").hide();          
-        $("#img-id-chk").hide();          
-      } else if ( layer_uuid ) {
-        $.get('../check_ID/',{'layer_uuid':layer_uuid, 'id_name':id_name})
+      $("#img-id-chk, #img-id-nochk, #img-id-spin").hide();          
+      if ( id_name && layer_uuid ) {
+      	$("#img-id-spin").show();          
+        $.get('../check_ID/',{'layer_uuid':layer_uuid, 'id_name':id_name},function(){
+          $("#img-id-spin").show();          
+        })
         .done(function(data){
           if ( data == "1" ) {
             $("#img-id-chk").show();          
-            $("#img-id-nochk").hide();          
+            $("#img-id-nochk, #img-id-spin").hide();          
           } else {
             $("#img-id-nochk").show();          
-            $("#img-id-chk").hide();          
+            $("#img-id-chk, #img-id-spin").hide();          
           }
         });
       }
@@ -1433,7 +1434,10 @@ $(function() {
       modal: true,
       dialogClass: "dialogWithDropShadow",
       buttons: {
-        "Create": function() {
+        "Create": {
+          text: "Create",
+          id: "btn-create-w",
+          click: function() {
           var layer_uuid = localStorage['current_layer'];
           if ( layer_uuid == undefined ) return;
           var w_name = $('#txt-w-name').val(),
@@ -1485,7 +1489,8 @@ $(function() {
             post_param['kernel_nn'] = kernel_nn;
             
           }           
-          $.get('../check_w/', {'w_name': w_name, 'layer_uuid':layer_uuid})
+          $.get('../check_w/', {'w_name': w_name, 'layer_uuid':layer_uuid}, function(){
+          })
           .done( function( data ) {
             var submit = true;
             if ( data == "1" ) {
@@ -1497,18 +1502,22 @@ $(function() {
             if ( submit ) {
               // submit request
               post_param['w_type'] = active;
-              $.post("../create_weights/", post_param)
+              $.post("../create_weights/", post_param, function(){
+                $("#btn-create-w").prop("disabled",true);          
+                $("<img src=/xun/{{url_prefix}}/media/img/loading_small.gif/>").insertBefore("#btn-create-w");
+              })
               .done(function( data ) {
                 fillForms();
                 alert("Create weights done.");
               })
               .fail(function() { alert("Create weights failed."); })
               .always(function(){
-                console.log("always");
+                $("#btn-create-w").prop("disabled",false);          
+                $("#btn-create-w").prev().remove();
               });
             }
           });
-
+          }
         },
         "Close": function() {
           $( this ).dialog( "close" );

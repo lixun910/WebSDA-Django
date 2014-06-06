@@ -42,8 +42,8 @@ def IsLayerExist(layer_uuid):
 
 def IsFieldUnique(layer_uuid, field_name):
     sql = "SELECT count(%s),count(distinct %s) from '%s'" % (field_name, field_name, layer_uuid)
-    print sql, DS
     tmp_layer = DS.ExecuteSQL(str(sql))
+    print str(sql), DS, tmp_layer
     tmp_layer.ResetReading()
     feature = tmp_layer.GetNextFeature()
     all_n = feature.GetFieldAsInteger(0) 
