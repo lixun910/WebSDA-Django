@@ -170,6 +170,7 @@ body {
 
 <script type="text/javascript">
 // global variables
+var highlighted = {};
 var html_load_img = "<img src=/xun/{{url_prefix}}/media/img/loading_small.gif/>",
     html_check_img = "<img src=/xun/{{url_prefix}}/media/img/checkmark.png/>",
     html_uncheck_img = "<img src=/xun/{{url_prefix}}/media/img/uncheckmark.png/>";
@@ -570,7 +571,7 @@ $(document).ready(function() {
   // Buttons 
   $('#btnOpenData, #btnAbout').css("opacity",1);
   if ( localStorage["current_layer"] ) {
-    $('#btnCreateW, #btnSpreg').css("opacity",1);
+    $('#btnCreateW, #btnSpreg, #btnNewMap').css("opacity",1);
   }
   $('#file_div').hide();
   $('#btnOpenData').click(function(){
@@ -599,7 +600,12 @@ $(document).ready(function() {
     $('#dialog-regression').dialog('open');
 
   });
-  
+  $('#btnNewMap').click(function(){
+    var layer_uuid = localStorage.getItem('current_layer');
+    if (  layer_uuid != undefined ){
+      window.Open("../new_map/?layer_uuid="+layer_uuid","_blank");
+    }
+  });
   //test 
   fillForms();
 });
