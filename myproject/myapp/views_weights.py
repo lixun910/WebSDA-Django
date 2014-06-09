@@ -27,6 +27,7 @@ Note: weights are now stored in database as a JSON string, which
 needs more discussion about, e.g. big size weights file.
 """
 def create_weights(request):
+    print "start creating weights"
     userid = request.session.get('userid', False)
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 

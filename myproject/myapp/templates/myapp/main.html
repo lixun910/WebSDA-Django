@@ -180,34 +180,9 @@ function sortKeys() { }
 function toggleTubar(isPts) {
   
 }
-function fillForms() {
+function loadWnames() {
   var layer_uuid = localStorage.getItem('current_layer');
   if (  layer_uuid != undefined ){
-    // get fields information
-    $.get("../get_fields/", {"layer_uuid": layer_uuid},function() {
-    }).done(function(fields) {
-      var field_names = [];
-      for ( var key in fields ){
-        field_names.push(key); 
-      }
-      field_names.sort();
-      // fill content for combobox: select ID for weights creation 
-      $('#sel-w-id').find('option').remove().end();
-      $('#sel-w-id').append($('<option>', {value: ""}).text(""));
-      $.each(field_names, function(i, field_name) {
-        if ( fields[field_name] != "String" ) {
-          $('#sel-w-id').append($('<option>', {value: field_name}).text(field_name));
-        }
-      });
-      $('#ul-x-variables').find('li').remove().end();
-      $.each(field_names, function(i, field_name) {
-        if ( fields[field_name] != "String" ) {
-          var item = $('#ul-x-variables').append('<li><p class="name">'+field_name+'</p></li>');
-        }
-      });
-      $( "#vars ul li" ).draggable({ helper: "clone" });
-      new List('vars', {valueNames:['name']});
-    });
     // get weights name:uuid
     $.get("../get_weights_names/", {"layer_uuid": layer_uuid},function() {
     }).done(function(data) {
@@ -227,6 +202,40 @@ function fillForms() {
       });
     });
   }
+}
+function loadFieldNames() {
+  var layer_uuid = localStorage.getItem('current_layer');
+  if (  layer_uuid != undefined ){
+    $.get("../get_fields/", {"layer_uuid": layer_uuid},function() {
+    }).done(function(fields) {
+      var field_names = [];
+      for ( var key in fields ){
+        field_names.push(key); 
+      }
+      field_names.sort();
+      // in weights creation dialog
+      $('#sel-w-id').find('option').remove().end();
+      $('#sel-w-id').append($('<option>', {value: ""}).text(""));
+      $.each(field_names, function(i, field_name) {
+        if ( fields[field_name] != "String" ) {
+          $('#sel-w-id').append($('<option>', {value: field_name}).text(field_name));
+        }
+      });
+      // in regression dialog
+      $('#ul-x-variables').find('li').remove().end();
+      $.each(field_names, function(i, field_name) {
+        if ( fields[field_name] != "String" ) {
+          var item = $('#ul-x-variables').append('<li><p class="name">'+field_name+'</p></li>');
+        }
+      });
+      $( "#vars ul li" ).draggable({ helper: "clone" });
+      new List('vars', {valueNames:['name']});
+    });
+  }
+}
+function fillForms() {
+  loadWnames();
+  loadFieldNames();
 }
 // map function
 var data; // global for testing
@@ -1422,14 +1431,10 @@ $(function() {
           w_name = $("#txt-w-name").val();
       $('#txt-w-name').next().remove();
       if ( layer_uuid && w_name ) { 
-        $.get('../check_w/', {
-            'w_name': w_name, 
-            'layer_uuid':layer_uuid,
-          }, function(){
+        $(html_load_img).insertAfter("#txt-w-name");
+        $.get('../check_w/', { 'w_name': w_name, 'layer_uuid':layer_uuid,}, function(){
             $('#txt-w-name').next().remove();
-            $(html_load_img).insertAfter("#txt-w-name");
-        })
-        .done( function( data ) {
+        }).done( function( data ) {
           $('#txt-w-name').next().remove();
           if ( data == "1" ) {
             $('<font color=red>duplicated name</span>').insertAfter($("#txt-w-name"));
@@ -1531,18 +1536,21 @@ $(function() {
             }
              
             // submit request
-            $("#btn-create-w").prop("disabled",true);          
+            $("#btn-create-w").attr("disabled",true).fadeTo(0, 0.5);
             $(html_load_img).insertBefore("#btn-create-w");
             post_param['w_type'] = active;
             $.post("../create_weights/", post_param, function(){})
             .done(function( data ) {
-              fillForms();
+              $('#txt-w-name').val("").next().remove();
+              $('#sel-w-id').next().remove();
+              loadWnames();
               alert("Create weights done.");
             })
             .fail(function() { alert("Create weights failed."); })
             .always(function(){
-              $("#btn-create-w").prop("disabled",false);          
-              $("#btn-create-w").prev().remove();
+              $("#btn-create-w").attr("disabled",false)
+                .fadeTo(0, 1)
+                .prev().remove();
             });
           }
         },
