@@ -72,6 +72,35 @@ def IsFieldUnique(layer_uuid, field_name):
         return True
     else: 
         return False
+
+def AddUniqueIDField(layer_uuid, field_name):
+    table_name = TBL_PREFIX + layer_uuid
+    # add field first
+    try:
+        sql = "alter table %s add column %s integer" % (table_name, field_name)
+        tmp_layer = DS.ExecuteSQL(str(sql))
+        sql = "update %s set %s = ogc_fid" % (table_name, field_name)
+        tmp_layer = DS.ExecuteSQL(str(sql))
+        return True
+    except Exception, e:
+        print "AddUniqueIDField() error"
+        print str(e)
+        return False
+
+def AddField(layer_uuid, field_name, field_type):
+    table_name = TBL_PREFIX + layer_uuid
+    if field_type not in ['integer', 'numeric', '']:
+        return False
+   
+    # save new field to django db 
+    from myproject.myapp.models import Geodata
+    geodata = Geodata.objects.get(uuid = layer_uuid)
+    if not geodata:
+        return False
+    fields = json.loads(geodata.fields)
+    fields[field_name] = field_type
+    geodata.fields = fields
+    geodata.save()
     
 def GetDataSource(drivername, filepath):
     driver = ogr.GetDriverByName(drivername)
@@ -115,6 +144,7 @@ def GetTableData(layer_uuid, column_names, drivername=None, filepath=None):
     table_name = TBL_PREFIX + layer_uuid
     lyr = DS.GetLayer(table_name)
     if lyr is None:
+        print "DS.GetLayer is none"
         return None
     lyrDefn = lyr.GetLayerDefn()
     # get position of each query columns NOTE: take care of lowercase
@@ -131,12 +161,14 @@ def GetTableData(layer_uuid, column_names, drivername=None, filepath=None):
                 colum_pos[key].append(col_type)
                 break
 
-    print colum_pos
+    print "column details", colum_pos
     column_values = {}
     for col_name in column_names:
         column_values[col_name] = []
 
     n = lyr.GetFeatureCount()
+    print "feature number", n
+    lyr.ResetReading()
     feat = lyr.GetNextFeature()
     while feat:
         for col_name, info in colum_pos.iteritems():

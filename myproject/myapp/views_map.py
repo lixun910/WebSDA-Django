@@ -96,6 +96,24 @@ def upload(request):
         return HttpResponse("OK")
 
 """
+Check if field exists in Django DB
+"""
+def check_field(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    if request.method == 'GET': 
+        layer_uuid = request.GET.get('layer_uuid',None)
+        field_name = request.GET.get('field_name',None)
+        if layer_uuid and field_name:
+            geodata = Geodata.objects.get(uuid = layer_uuid)
+            if geodata:
+                fields = json.loads(geodata.fields)
+                if field_name in fields:
+                    return HttpResponse("1")
+    return HttpResponse("0")
+    
+"""
 Upload the image that draw on user's browser in HTML5 canvas.
 The image name will just append ".png" to shape file name.
 The url of image is stored in related geodatabase under the field

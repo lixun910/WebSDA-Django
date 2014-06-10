@@ -216,7 +216,7 @@ function loadFieldNames() {
       field_names.sort();
       // in weights creation dialog
       $('#sel-w-id').find('option').remove().end();
-      $('#sel-w-id').append($('<option>', {value: ""}).text(""));
+      $('#sel-w-id').append($('<option>', {value: "ogc_fid"}).text("[use sequence as default]"));
       $.each(field_names, function(i, field_name) {
         if ( fields[field_name] != "String" ) {
           $('#sel-w-id').append($('<option>', {value: field_name}).text(field_name));
@@ -936,8 +936,8 @@ $('#btn_logout').click(function(){
       <textarea id="txt-spreg-summary" style="resize: none; width: 100%; padding: 10px; border: none; height: 100%; margin: -10px; border: 1px solid #ccc;"> </textarea>
     </div>
     <div id="tabs-2" style="height:100%">
-      <div id="txt-spreg-predy" > </div>
       <button id="btn-save-predy">Save values to datasource</button>
+      <div id="txt-spreg-predy" > </div>
     </div>
   </div>
 </div>
@@ -1275,13 +1275,15 @@ $(function() {
           if ( data['success'] == 1 ) {
             $('#btn_result').show();
             if ( data['report'] ) {
-              var predy = "",
-                  summary = "";
+              var predy = "", summary = "", cnt= 0;
+              $.each(data['report'], function(id, result) { cnt+=1;});
+	      cnt = cnt.toString();
               $.each(data['report'], function(id, result) {
-                summary += "Report" + id + "\n\n"+result['summary'] + "\n\n";
+		var idx = parseInt(id) + 1
+                summary += "Report " + idx + "/" + cnt + "\n\n"+result['summary'] + "\n\n";
                 
-                predy += "<b>Report " + id + "</b><br/>";
-                predy += "<table><tr><th>Predicted Values</th><th>Residuals</th></tr>";
+                predy += "<b>Report " + idx + "/" + cnt +"</b><br/><br/>";
+                predy += "<table border=1 width=100% id='predy"+id+"'><tr><th>Predicted Values</th><th>Residuals</th></tr>";
                 var n = result['predy'][0].length;
                 for ( var i=0; i< n; i++ ) {
                   predy += "<tr><td>" + result['predy'][0][i] + "</td><td>" + result['residuals'][0][i] + "</td></tr>";
