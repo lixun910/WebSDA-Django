@@ -26,6 +26,14 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2', 
+        'NAME': 'xun',
+        'USER': 'xun',      
+        'PASSWORD': 'AxZ5ruDz',
+        'HOST': '10.0.21.220',
+        'PORT': '5432',
+    },
+    'sqlite': {
         'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
         'NAME': os.path.join(PROJECT_ROOT, 'database/database.sqlite3'),                      # Or path to database file if using sqlite3.
         'USER': 'jiefang',                      # Not used with sqlite3.
@@ -34,6 +42,8 @@ DATABASES = {
         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
     }
 }
+
+DB = 'postgres'
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name

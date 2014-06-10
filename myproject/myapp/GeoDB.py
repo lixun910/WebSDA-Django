@@ -1,21 +1,38 @@
 import os
 from osgeo import ogr
+from django.conf import settings
 
-GEODB_PATH = os.path.realpath(os.path.dirname(__file__)) + '/../database/geodata.sqlite'
+TBL_PREFIX = "D"
 
-print GEODB_PATH
-SQLITE_DRIVER = ogr.GetDriverByName('SQLite')
-DS = SQLITE_DRIVER.Open(GEODB_PATH, 0) # readonly
+DS = None
+if settings.DB == 'postgres':
+    db_set = settings.DATABASES['default']
+    db_host = db_set['HOST']
+    db_port = db_set['PORT']
+    db_uname = db_set['USER']
+    db_upwd = db_set['PASSWORD']
+    db_name = db_set['NAME']
+    conn_str = "PG: host=%s dbname=%s user=%s password=%s" % (db_host, db_name, db_uname, db_upwd)
+    DS = ogr.Open(conn_str) 
+else:
+    GEODB_PATH = os.path.realpath(os.path.dirname(__file__)) + '/../database/geodata.sqlite'
+    SQLITE_DRIVER = ogr.GetDriverByName('SQLite')
+    DS = SQLITE_DRIVER.Open(GEODB_PATH, 0) # readonly
 
 if DS is None:
     print 'Open GeoDB failed'
 
-def ExportToSqlite(shp_path,layer_uuid):
+def ExportToDB(shp_path,layer_uuid):
     print "export starting..", layer_uuid
     # will be called in subprocess
     import subprocess
-    rtn = subprocess.check_call(\
-        ["ogr2ogr","-append", "-overwrite", GEODB_PATH,shp_path,"-nln",layer_uuid])
+    table_name = TBL_PREFIX + layer_uuid
+    if settings.DB == 'postgres':
+        script = 'ogr2ogr -skipfailures -append -f "PostgreSQL" -overwrite PG:"host=%s dbname=%s user=%s password=%s" %s -nln %s'  % (db_host, db_name, db_uname, db_upwd, shp_path, table_name)
+        rtn = subprocess.call( script, shell=True)
+    else:
+        script = 'ogr2ogr -skipfailures -append -overwrite %s  %s -nln %s'  % (GEODB_PATH, shp_path, table_name)
+        rtn = subprocess.call( script, shell=True)
     if rtn != 0:
         # write to log
         pass
@@ -34,20 +51,23 @@ def ExportToESRIShape(json_path):
         pass
 
 def IsLayerExist(layer_uuid):
-    layer = DS.GetLayer(layer_uuid)
+    table_name = TBL_PREFIX + layer_uuid
+    layer = DS.GetLayer(table_name)
     if layer: 
         return True
     else:
         return False
 
 def IsFieldUnique(layer_uuid, field_name):
-    sql = "SELECT count(%s),count(distinct %s) from '%s'" % (field_name, field_name, layer_uuid)
+    table_name = TBL_PREFIX + layer_uuid
+    sql = "SELECT count(%s) as a, count(distinct %s) as b from %s" % (field_name, field_name, table_name)
     tmp_layer = DS.ExecuteSQL(str(sql))
     print str(sql), DS, tmp_layer
     tmp_layer.ResetReading()
     feature = tmp_layer.GetNextFeature()
     all_n = feature.GetFieldAsInteger(0) 
     uniq_n = feature.GetFieldAsInteger(1)
+    print all_n, uniq_n
     if all_n == uniq_n:
         return True
     else: 

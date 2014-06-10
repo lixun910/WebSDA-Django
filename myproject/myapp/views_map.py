@@ -85,7 +85,7 @@ def upload(request):
             new_geodata = Geodata(uuid=layer_uuid, userid=userid, origfilename=shp_name, n=meta_data['n'], geotype=str(meta_data['geom_type']), bbox=str(meta_data['bbox']), fields=json.dumps(meta_data['fields']))
             new_geodata.save()
             # export to sqlite database
-            mp.Process(target=GeoDB.ExportToSqlite, args=(shp_path,layer_uuid)).start()
+            mp.Process(target=GeoDB.ExportToDB, args=(shp_path,layer_uuid)).start()
 
             return HttpResponse('{"layer_uuid":"%s"}'%layer_uuid, content_type="application/json")
 
@@ -113,7 +113,7 @@ def upload_canvas(request):
             if shp_url:
                 shp_location, shp_name = shp_url
                 image_location = settings.PROJECT_ROOT + shp_location + ".png"
-                #print image_location
+                print image_location
                 if not os.path.isfile(image_location):
                     datauri = request.POST['imageData']
                     #print datauri

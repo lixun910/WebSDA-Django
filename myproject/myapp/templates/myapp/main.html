@@ -235,6 +235,9 @@ function loadFieldNames() {
   }
 }
 function fillForms() {
+  if ( localStorage["current_layer"] ) {
+    $('#btnCreateW, #btnSpreg, #btnNewMap').css("opacity",1);
+  }
   loadWnames();
   loadFieldNames();
 }
@@ -274,8 +277,8 @@ function CreateMapContainer(jsonFilePath) {
 function SaveMapThumbnail(canvas) {
   var layer_uuid = localStorage.getItem('current_layer');
   if (  layer_uuid != undefined ) {
-    canvas.id = layer_uuid;
-    var dataURL = canvas.toDataURL();
+    canvas.attr("id", layer_uuid);
+    var dataURL = canvas[0].toDataURL();
     $.ajax({
       type: "POST",
       url: "../upload_canvas/",
@@ -435,7 +438,7 @@ $(document).ready(function() {
   var dropboxOptions = {
       success: function(files) {
           var fileLink = files[0].link;
-          ShowJsonMap(fileLink, undefined, SaveMapThumbnail);
+          ShowJsonMap(fileLink, undefined);
       },
       cancel: function() {
           $('#progressCont').hide();
@@ -509,7 +512,7 @@ $(document).ready(function() {
         var opts = { shp: f};
         new Shapefile(opts, function(content){
           var json = content.geojson;
-          ShowJsonMap(fileurl, json, SaveMapThumbnail);
+          ShowJsonMap(fileurl, json);
         }); 
       } else if ( suffix === 'json' || suffix === 'geojson' ) {
         var reader = new FileReader();
@@ -521,7 +524,7 @@ $(document).ready(function() {
         reader.onloadend =  function(evt) {
           if (evt.target.readyState == FileReader.DONE) {
             var data = evt.target.result;
-            ShowJsonMap(fileurl, JSON.parse(data), SaveMapThumbnail);
+            ShowJsonMap(fileurl, JSON.parse(data));
           }
         };
         reader.readAsText(f);
@@ -539,6 +542,10 @@ $(document).ready(function() {
           if ( data['layer_uuid'] != undefined) {
             localStorage['current_layer']= data["layer_uuid"];
             fillForms();
+            // get canvas
+            var containerID = 'map' + mapCounter,
+                canvas = $('#' + containerID + ' canvas');
+            SaveMapThumbnail(canvas);
           }
         } catch(e){console.log(e);}
         // Ensure that the progress bar displays 100% at the end.
@@ -603,7 +610,7 @@ $(document).ready(function() {
   $('#btnNewMap').click(function(){
     var layer_uuid = localStorage.getItem('current_layer');
     if (  layer_uuid != undefined ){
-      window.Open("../new_map/?layer_uuid="+layer_uuid","_blank");
+      window.open("../new_map/?layer_uuid="+layer_uuid,"_blank");
     }
   });
   //test 
