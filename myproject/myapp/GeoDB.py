@@ -78,10 +78,11 @@ def GetDataSource(drivername, filepath):
     ds = driver.Open(filepath, 0)
     return ds
     
-def GetMetaData(layername, drivername=None, filepath=None):
+def GetMetaData(layer_uuid, drivername=None, filepath=None):
+    table_name = TBL_PREFIX + layer_uuid
     lyr = None
     ds = GetDataSource(drivername,filepath) if drivername and filepath else DS 
-    lyr = ds.GetLayer(0) if drivername=="ESRI shapefile" else ds.GetLayer(layername)
+    lyr = ds.GetLayer(0) if drivername=="ESRI shapefile" else ds.GetLayer(table_name)
     if lyr is None:
         return None
     meta_data = dict()
@@ -105,12 +106,14 @@ def GetMetaData(layername, drivername=None, filepath=None):
     meta_data['fields'] = fields
     return meta_data
 
-def GetGeometries(layername):
+def GetGeometries(layer_uuid):
+    table_name = TBL_PREFIX + layer_uuid
     pass
 
 # 0 Integer 2 Real 4 String
-def GetTableData(layername, column_names, drivername=None, filepath=None):
-    lyr = DS.GetLayer(layername)
+def GetTableData(layer_uuid, column_names, drivername=None, filepath=None):
+    table_name = TBL_PREFIX + layer_uuid
+    lyr = DS.GetLayer(table_name)
     if lyr is None:
         return None
     lyrDefn = lyr.GetLayerDefn()

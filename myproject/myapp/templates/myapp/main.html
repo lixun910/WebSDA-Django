@@ -806,7 +806,6 @@ $('#btn_logout').click(function(){
 </style>
 <div id="dialog-regression" title="Spatial Regression Dialog"> 
   <p style="text-align: left">
-  <button id="btn_create_w">Create Weights</button> 
   <button id="first">Open Model</button>
   <button id="save_btn">Save Model</button>
   <button id="sec">Reset Model</button>
@@ -889,6 +888,9 @@ $('#btn_logout').click(function(){
         </div>
         <div id="weights">
           <h1 class="ui-widget-header">Weights</h1>
+          <table width=100%><tr><td>
+          <button id="btn_create_w">Create Weights</button> 
+          </td></tr><tr><td>
           <div id="w_catalog_model">
             <h2><a href="#">Model Weights (Optional) </a></h2>
             <div id="w_model_box">
@@ -903,6 +905,7 @@ $('#btn_logout').click(function(){
               </select>
             </div>
           </div>
+          </td></tr></table>
         </div>
       </td>
       <td valign="top">
