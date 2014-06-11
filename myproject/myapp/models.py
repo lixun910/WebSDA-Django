@@ -21,6 +21,7 @@ class Geodata(models.Model):
     bbox = models.TextField()
     # fields: {fieldname:type}
     fields = models.TextField()
+    minpairdist = models.FloatField(null=True, blank=True)
     thumbnail = models.URLField()
 
 class Weights(models.Model):

@@ -1,4 +1,5 @@
 import os
+import subprocess
 from osgeo import ogr
 from django.conf import settings
 
@@ -22,10 +23,8 @@ else:
 if DS is None:
     print 'Open GeoDB failed'
 
-def ExportToDB(shp_path,layer_uuid):
+def ExportToDB(shp_path, layer_uuid):
     print "export starting..", layer_uuid
-    # will be called in subprocess
-    import subprocess
     table_name = TBL_PREFIX + layer_uuid
     if settings.DB == 'postgres':
         script = 'ogr2ogr -skipfailures -append -f "PostgreSQL" -overwrite PG:"host=%s dbname=%s user=%s password=%s" %s -nln %s'  % (db_host, db_name, db_uname, db_upwd, shp_path, table_name)
@@ -33,12 +32,25 @@ def ExportToDB(shp_path,layer_uuid):
     else:
         script = 'ogr2ogr -skipfailures -append -overwrite %s  %s -nln %s'  % (GEODB_PATH, shp_path, table_name)
         rtn = subprocess.call( script, shell=True)
+        
     if rtn != 0:
-        # write to log
+        # note: write to log
         pass
+    
+    # convert json file to shapefile for PySAL usage if needed
     if shp_path.endswith(".json") or shp_path.endswith(".geojson"):
         ExportToESRIShape(shp_path) 
-    print rtn,"export ends."
+        
+    # compute meta data for weights creation
+    from pysal import min_threshold_dist_from_shapefile
+    thres = min_threshold_dist_from_shapefile(shp_path)
+    from myproject.myapp.models import Geodata
+    geodata = Geodata.objects.get(uuid = layer_uuid)
+    if geodata:
+        geodata.minpairdist = thres
+        geodata.save()
+    
+    print "export ends with ", rtn
     
 def ExportToESRIShape(json_path):
     # will be called in subprocess

@@ -55,20 +55,22 @@ def create_weights(request):
         if w_id == "ogc_fid":
             w_id = "ogc_fid4"
             dbf_path = shp_path[:-3] + "dbf"
-            tmp_dbf_path = shp_path[:-3] + "tmp.dbf"
             f = pysalOpen(dbf_path,'r')
-            newDB = pysalOpen(tmp_dbf_path, 'w')
-            newDB.header = f.header
-            newDB.header.append(w_id)
-            newDB.field_spec = f.field_spec
-            newDB.field_spec.append(('N',10,0))
-            for i,row in enumerate(f):
-                row.append(i+1)
-                newDB.write(row) 
-            newDB.close()
+            if w_id not in f.header:
+                print "add ogc_fid column"
+                tmp_dbf_path = shp_path[:-3] + "tmp.dbf"
+                newDB = pysalOpen(tmp_dbf_path, 'w')
+                newDB.header = f.header
+                newDB.header.append(w_id)
+                newDB.field_spec = f.field_spec
+                newDB.field_spec.append(('N',10,0))
+                for i,row in enumerate(f):
+                    row.append(i+1)
+                    newDB.write(row) 
+                newDB.close()
+                import shutil
+                shutil.copyfile(tmp_dbf_path, dbf_path)
             f.close()
-            import shutil
-            shutil.copyfile(tmp_dbf_path, dbf_path)
 
         w = CreateWeights(shp_path, w_name, w_id, w_type,\
                           cont_type = cont_type,

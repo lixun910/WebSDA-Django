@@ -79,14 +79,15 @@ def upload(request):
                 return HttpResponse("ERROR")
             if layer_uuid == "": layer_uuid = md5(userid+shp_name).hexdigest()
             shp_path = settings.PROJECT_ROOT + fileurls[0][:-3] + "shp"
-            # save to Geodata table
+            # save meta data to Geodata table
             meta_data = GeoDB.GetMetaData(layer_uuid,"ESRI shapefile",shp_path)
-            print shp_path, meta_data
             new_geodata = Geodata(uuid=layer_uuid, userid=userid, origfilename=shp_name, n=meta_data['n'], geotype=str(meta_data['geom_type']), bbox=str(meta_data['bbox']), fields=json.dumps(meta_data['fields']))
             new_geodata.save()
-            # export to sqlite database
+            # export to spatial database in background
+            # note: this background process also compute min_threshold
+            # and max_thresdhold
             mp.Process(target=GeoDB.ExportToDB, args=(shp_path,layer_uuid)).start()
-
+            print "uploaded done."
             return HttpResponse('{"layer_uuid":"%s"}'%layer_uuid, content_type="application/json")
 
         return HttpResponse("OK")
