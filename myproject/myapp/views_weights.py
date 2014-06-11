@@ -13,6 +13,7 @@ from hashlib import md5
 from pysal import W, w_union, higher_order
 from pysal import rook_from_shapefile as rook
 from pysal import queen_from_shapefile as queen
+from pysal import open as pysalOpen
 
 from myproject.myapp.models import Weights, Preference
 import GeoDB
@@ -53,11 +54,10 @@ def create_weights(request):
         # detect w_id is unique ID
         if w_id == "ogc_fid":
             w_id = "ogc_fid4"
-            import pysal
             dbf_path = shp_path[:-3] + "dbf"
             tmp_dbf_path = shp_path[:-3] + "tmp.dbf"
-            f = pysal.open(dbf_path,'r')
-            newDB = pysal.open(tmp_dbf_path, 'w')
+            f = pysalOpen(dbf_path,'r')
+            newDB = pysalOpen(tmp_dbf_path, 'w')
             newDB.header = f.header
             newDB.header.append(w_id)
             newDB.field_spec = f.field_spec
@@ -104,9 +104,9 @@ def create_weights(request):
         try:
             weights = json.dumps(w.weights)
         except:
-            neighbors = {}
+            weights = {}
             for k,v in w.weights.iteritems():
-                neighbors[str(k)] = v
+                weights[str(k)] = v
         
         new_w_item = Weights(uuid=wuuid, userid=userid, \
                              shpfilename=shpfilename, name=w_name, n=w.n,\
