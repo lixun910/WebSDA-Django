@@ -37,7 +37,6 @@ def create_weights(request):
         w_id = request.POST.get("w_id", None)
         w_name = request.POST.get("w_name", None)
         w_type = request.POST.get("w_type", None)
-        # detect w_id is unique ID
         cont_type = request.POST.get("cont_type", None)
         cont_order = request.POST.get("cont_order", None)
         cont_ilo = request.POST.get("cont_ilo", None)
@@ -50,6 +49,27 @@ def create_weights(request):
         file_url, shpfilename = get_file_url(userid, layer_uuid)
         file_url = settings.PROJECT_ROOT + file_url
         shp_path = file_url+".shp" if file_url.endswith("json") else file_url
+
+        # detect w_id is unique ID
+        if w_id == "ogc_fid":
+            w_id = "ogc_fid4"
+            import pysal
+            dbf_path = shp_path[:-3] + "dbf"
+            tmp_dbf_path = shp_path[:-3] + "tmp.dbf"
+            f = pysal.open(dbf_path,'r')
+            newDB = pysal.open(tmp_dbf_path, 'w')
+            newDB.header = f.header
+            newDB.header.append(w_id)
+            newDB.field_spec = f.field_spec
+            newDB.field_spec.append(('N',10,0))
+            for i,row in enumerate(f):
+                row.append(i+1)
+                newDB.write(row) 
+            newDB.close()
+            f.close()
+            import shutil
+            shutil.copyfile(tmp_dbf_path, dbf_path)
+
         w = CreateWeights(shp_path, w_name, w_id, w_type,\
                           cont_type = cont_type,
                           cont_order = cont_order,
