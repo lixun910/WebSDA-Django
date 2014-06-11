@@ -171,9 +171,9 @@ body {
 <script type="text/javascript">
 // global variables
 var highlighted = {};
-var html_load_img = "<img src=/xun/{{url_prefix}}/media/img/loading_small.gif/>",
-    html_check_img = "<img src=/xun/{{url_prefix}}/media/img/checkmark.png/>",
-    html_uncheck_img = "<img src=/xun/{{url_prefix}}/media/img/uncheckmark.png/>";
+var html_load_img = "<img src={{url_prefix}}/media/img/loading_small.gif>",
+    html_check_img = "<img src={{url_prefix}}/media/img/checkmark.png>",
+    html_uncheck_img = "<img src={{url_prefix}}/media/img/uncheckmark.png>";
 
 // fill forms and controls after uploading data files
 function refillCombobox(kv) { }
