@@ -941,6 +941,26 @@ $('#btn_logout').click(function(){
     </div>
   </div>
 </div>
+<script>
+$('#btn-save-predy').click(function() {
+  var count=0, param;
+  $('#txt-spreg-predy').children("table").each(function(i,tbl) {
+    var content = $(tbl).html().replace(/\<th\>|\<\/th\>|\<tbody\>|\<\/tbody\>|\<tr\>|\<\/tr\>|\<\/td\>/g,"").replace(/\<td\>/g,",");
+    param["predy" + i] = content;
+    count = i;
+  });
+  var layer_uuid = localStorage['current_layer'];
+  if (param && layer_uuid) {
+    param["n"] = count+1;
+    param["layer_uuid"] = layer_uuid;
+    param[csrfmiddlewaretoken] = {{csrf_token}};
+    $.post("../spreg_save_result", params, function() {
+    }).done( function(result) {
+      console.log(result);
+    });
+  }
+});
+</script>
 
 <div id="dialog-preference" title="Preference">
   <form id="form-pref">{% csrf_token %}

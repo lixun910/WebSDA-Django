@@ -22,13 +22,37 @@ from views_utils import helper_get_W_list
 logger = logging.getLogger(__name__)
 
 def save_spreg_preference(request):
-    userid = request.session.get('userid', False)
     print request.POST
+    userid = request.session.get('userid', False)
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'POST':
         pref = request.POST.get("data", None)
         return HttpResponse("1")
+    return HttpResponse("0")
+    
+def save_spreg_result(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    if request.method == 'POST':
+        layer_uuid = request.POST.get("layer_uuid",None)
+        n = request.POST.get("n", 0)
+        if layer_uuid and n > 0:
+            for i in range(int(n)): 
+                data = request.POST.get("predy" + i,None)
+                if data:
+                    pred_vals = []
+                    residuals = []
+                    for j,val in enumerate(data.split(",")[1:]):
+                        if j % 2 == 0:
+                            pred_vals.append(val)
+                        else:
+                            residuals.append(val)
+                    GeoDB.AddField(layer_uuid, pred_vals, 'predict%d'%i, 'real')
+                    GeoDB.AddField(layer_uuid, residuals, 'residual%d'%i, 'real')
+                    
+            return HttpResponse("1")
     return HttpResponse("0")
     
 def spatial_regression(request):
