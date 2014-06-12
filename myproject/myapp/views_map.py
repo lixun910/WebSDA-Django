@@ -13,7 +13,7 @@ from hashlib import md5
 
 from myproject.myapp.models import Document, Geodata
 
-from views_utils import get_file_url
+from views_utils import get_file_url, RSP_FAIL, RSP_OK
 import GeoDB
 
 logger = logging.getLogger(__name__)
@@ -43,11 +43,12 @@ def get_minmaxdist(request):
         geodata = Geodata.objects.get(uuid = layer_uuid)
         if geodata:
             min_val = geodata.minpairdist
-            bbox = eval(geodata.bbox)
-            max_val = ((bbox[1] - bbox[0])**2 + (bbox[3] - bbox[2])**2)**0.5
-            #return HttpResponse("{'min':%f, 'max':%f}"%(min_val,max_val), content_type="application/json")
-            return HttpResponse('{"min":%f, "max":%f}'%(min_val,max_val))
-    return HttpResponse("ERROR")
+            if min_val: 
+                bbox = eval(geodata.bbox)
+                max_val = ((bbox[1] - bbox[0])**2 + (bbox[3] - bbox[2])**2)**0.5
+                #return HttpResponse("{'min':%f, 'max':%f}"%(min_val,max_val), content_type="application/json")
+                return HttpResponse('{"min":%f, "max":%f}'%(min_val,max_val), content_type="application/json")
+    return HttpResponse(RSP_FAIL, content_type="application/json")
     
 """
 Upload shape files to server. Write meta data to meta database.

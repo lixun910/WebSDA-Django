@@ -17,7 +17,7 @@ from pysal import open as pysalOpen
 
 from myproject.myapp.models import Weights, Preference
 import GeoDB
-from views_utils import get_file_url, create_w_uuid
+from views_utils import get_file_url, create_w_uuid, RSP_FAIL, RSP_OK
 from weights_dispatcher import CreateWeights
 
 logger = logging.getLogger(__name__)
@@ -94,9 +94,6 @@ def create_weights(request):
         wtypemeta = json.dumps(meta_data)
         wuuid = create_w_uuid(userid, layer_uuid, w_name)
         histogram = str(w.histogram)
-        #print w.histogram
-        #print w.neighbors
-        #print w.weights
         try:
             neighbors = json.dumps(w.neighbors)
         except:
@@ -113,12 +110,12 @@ def create_weights(request):
         new_w_item = Weights(uuid=wuuid, userid=userid, \
                              shpfilename=shpfilename, name=w_name, n=w.n,\
                              wid=w_id, wtype=w_type, wtypemeta=wtypemeta, \
-                             histogram=histogram, neighbors=neighbors,\
+                             histogram=histogram, neighbors=neighbors, \
                              weights=weights)
         new_w_item.save()
-        return HttpResponse("OK")
+        return HttpResponse(RSP_OK)
     
-    return HttpResponse("ERROR")
+    return HttpResponse(RSP_FAIL)
 
 """
 Get all weights file names that created based on one map layer.
@@ -134,10 +131,12 @@ def get_weights_names(request):
         w_array = Weights.objects.filter(userid = userid).filter(shpfilename = shpfilename)
         w_names = {}
         for w in w_array:
-            w_names[w.name] = w.uuid
+            w_names[w.name] = {}
+            w_names[w.name]["uuid"] = w.uuid
+            w_names[w.name]["type"] = w.wtype
         json_result = json.dumps(w_names)
         return HttpResponse(json_result, content_type="application/json")
-    return HttpResponse("ERROR")
+    return HttpResponse(RSP_FAIL)
 
 def check_w(request):
     userid = request.session.get('userid', False)

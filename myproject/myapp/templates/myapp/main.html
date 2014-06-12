@@ -187,18 +187,25 @@ function loadWnames() {
     // get weights name:uuid
     $.get("../get_weights_names/", {"layer_uuid": layer_uuid},function() {
     }).done(function(data) {
+      if ( "success" in data ) {
+	console.log("get weights names failed.");
+	return;
+      }
       var w_names = [];
-      for ( var key in data) {
+      for ( var key in data ) {
         w_names.push(key); 
       }
       w_names.sort();
       console.log("get_weights_names:",w_names);
       w_combobox= ['#sel-model-w-files', '#sel-kernel-w-files'];
-      $.each(w_combobox, function(i, w_cmb) {
+      $.each( w_combobox, function(i, w_cmb ) {
         $(w_cmb).find('option').remove().end();
         $.each(w_names, function(j, w_name) {
-          wuuid = data[w_name];
-          $(w_cmb).append($('<option>', {value: wuuid}).text(w_name));
+	  wtype = data[w_name]["type"];
+	  if ( (wtype <= 1 && w_cmb == w_combobox[0]) || (wtype == 2 && w_cmb == w_combobox[1]) ) {
+	    wuuid = data[w_name]["uuid"];
+	    $(w_cmb).append($('<option>', {value: wuuid}).text(w_name));
+	  }
         });
       });
     });
@@ -209,9 +216,10 @@ function loadMinPairDist() {
   if (  layer_uuid != undefined ) {
     $.get("../get_minmaxdist/", {"layer_uuid": layer_uuid})
     .done( function(data) {
-      data = JSON.parse(data);
-      $('#dist-slider').slider('option', {min: data['min'], max: data['max']});
-      $('#txt-dist-thr').val(data['min']);
+      if ( data["success"] != 0 ) {
+	$('#dist-slider').slider('option', {min: data['min'], max: data['max']});
+	$('#txt-dist-thr').val(data['min']);
+      }
     });
   }
 }
@@ -1590,10 +1598,8 @@ $(function() {
               post_param['dist_value'] = dist_value;
               
             } else if ( active == 2) {
-              var kernel_type = $("#sel-kel-type").val(),
-                  kernel_nn = $("#txt-kel-nn").val();
-              post_param['kernel_type'] = kernel_type;
-              post_param['kernel_nn'] = kernel_nn;
+              post_param['kernel_type'] = $("#sel-kel-type").val(); 
+              post_param['kernel_nn'] = $("#txt-kel-nn").val();
             }
              
             // submit request
@@ -1602,10 +1608,15 @@ $(function() {
             post_param['w_type'] = active;
             $.post("../create_weights/", post_param, function(){})
             .done(function( data ) {
-              $('#txt-w-name').val("").next().remove();
-              $('#sel-w-id').next().remove();
-              loadWnames();
-              alert("Create weights done.");
+	      data = JSON.parse(data);
+	      if ( data["success"] == 1 ) {
+		$('#txt-w-name').val("").next().remove();
+		$('#sel-w-id').next().remove();
+		loadWnames();
+		alert("Create weights done.");
+		return;
+	      }
+	      alert("Create weights failed.");
             })
             .fail(function() { alert("Create weights failed."); })
             .always(function(){

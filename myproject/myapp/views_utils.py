@@ -12,6 +12,9 @@ from pysal import W, w_union, higher_order
 
 logger = logging.getLogger(__name__)
 
+RSP_OK = '{"success":1}'
+RSP_FAIL = '{"success":0}'
+
 """
 Get reletive url of shape files that user uploaded to server.
 """
