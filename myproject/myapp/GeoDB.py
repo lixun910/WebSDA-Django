@@ -1,4 +1,4 @@
-import os
+import os, json
 import subprocess
 from osgeo import ogr
 from django.conf import settings
@@ -6,22 +6,25 @@ from django.conf import settings
 TBL_PREFIX = "D"
 
 DS = None
-if settings.DB == 'postgres':
-    db_set = settings.DATABASES['default']
-    db_host = db_set['HOST']
-    db_port = db_set['PORT']
-    db_uname = db_set['USER']
-    db_upwd = db_set['PASSWORD']
-    db_name = db_set['NAME']
-    conn_str = "PG: host=%s dbname=%s user=%s password=%s" % (db_host, db_name, db_uname, db_upwd)
-    DS = ogr.Open(conn_str) 
-else:
-    GEODB_PATH = os.path.realpath(os.path.dirname(__file__)) + '/../database/geodata.sqlite'
-    SQLITE_DRIVER = ogr.GetDriverByName('SQLite')
-    DS = SQLITE_DRIVER.Open(GEODB_PATH, 0) # readonly
+if DS is None:
+    print 'Connecting to GeoDB'
+    if settings.DB == 'postgres':
+        db_set = settings.DATABASES['default']
+        db_host = db_set['HOST']
+        db_port = db_set['PORT']
+        db_uname = db_set['USER']
+        db_upwd = db_set['PASSWORD']
+        db_name = db_set['NAME']
+        conn_str = "PG: host=%s dbname=%s user=%s password=%s" % (db_host, db_name, db_uname, db_upwd)
+        DS = ogr.Open(conn_str) 
+    else:
+        GEODB_PATH = os.path.realpath(os.path.dirname(__file__)) + '/../database/geodata.sqlite'
+        SQLITE_DRIVER = ogr.GetDriverByName('SQLite')
+        DS = SQLITE_DRIVER.Open(GEODB_PATH, 0) # readonly
+    print 'OK to GeoDB'
 
 if DS is None:
-    print 'Open GeoDB failed'
+    print 'Connect to GeoDB failed'
 
 def ExportToDB(shp_path, layer_uuid):
     print "export starting..", layer_uuid
@@ -212,4 +215,4 @@ def GetTableData(layer_uuid, column_names, drivername=None, filepath=None):
     
 #GetTableData("nat", ["state_fips","hr70","name"])
 
-AddField("6f162b17c71e4ebefffc3415519d9811", "id", 0, range(49))
+#AddField("6f162b17c71e4ebefffc3415519d9811", "id", 0, range(49))

@@ -49,8 +49,8 @@ def save_spreg_result(request):
                             pred_vals.append(val)
                         else:
                             residuals.append(val)
-                    GeoDB.AddField(layer_uuid, pred_vals, 'predict%d'%i, 'real')
-                    GeoDB.AddField(layer_uuid, residuals, 'residual%d'%i, 'real')
+                    GeoDB.AddField(layer_uuid, 'predict%d'%i, 1,  pred_vals)
+                    GeoDB.AddField(layer_uuid, 'residual%d'%i, 1, residuals)
                     
             return HttpResponse("1")
     return HttpResponse("0")
