@@ -106,8 +106,15 @@ def AddUniqueIDField(layer_uuid, field_name):
 
 def AddField(layer_uuid, field_name, field_type, values):
     table_name = TBL_PREFIX + layer_uuid
-    if field_type not in ['integer', 'numeric', '']:
-        return False
+    field_db_type = ['integer', 'numeric', 'varchar(255)'][field_type]
+   
+    if field_name and values:
+        sql = "alter table %s add column %s %s" % (table_name, field_name, field_db_type)
+        tmp_layer = DS.ExecuteSQL(str(sql))
+        for i, val in enumerate(values):
+            if field_type == 2: val = "'%s'" % val
+            sql = "update %s set %s=%s where ogc_fid=%d" % (table_name, field_name, val, i+1)
+            DS.ExecuteSQL(str(sql))
    
     from myproject.myapp.models import Geodata
     geodata = Geodata.objects.get(uuid = layer_uuid)
@@ -204,3 +211,5 @@ def GetTableData(layer_uuid, column_names, drivername=None, filepath=None):
 #print GetMetaData("nat")
     
 #GetTableData("nat", ["state_fips","hr70","name"])
+
+AddField("6f162b17c71e4ebefffc3415519d9811", "id", 0, range(49))
