@@ -32,7 +32,7 @@ def get_fields(request):
         geodata = Geodata.objects.get(uuid = layer_uuid)
         if geodata:
             return HttpResponse(geodata.fields, content_type="application/json")
-    return HttpResponse("ERROR")
+    return HttpResponse(RSP_FAIL, content_type="application/json")
 
 def get_minmaxdist(request):
     userid = request.session.get('userid', False)
@@ -46,7 +46,6 @@ def get_minmaxdist(request):
             if min_val: 
                 bbox = eval(geodata.bbox)
                 max_val = ((bbox[1] - bbox[0])**2 + (bbox[3] - bbox[2])**2)**0.5
-                #return HttpResponse("{'min':%f, 'max':%f}"%(min_val,max_val), content_type="application/json")
                 return HttpResponse('{"min":%f, "max":%f}'%(min_val,max_val), content_type="application/json")
     return HttpResponse(RSP_FAIL, content_type="application/json")
     

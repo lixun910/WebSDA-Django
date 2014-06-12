@@ -196,7 +196,6 @@ function loadWnames() {
         w_names.push(key); 
       }
       w_names.sort();
-      console.log("get_weights_names:",w_names);
       w_combobox= ['#sel-model-w-files', '#sel-kernel-w-files'];
       $.each( w_combobox, function(i, w_cmb ) {
         $(w_cmb).find('option').remove().end();
@@ -227,7 +226,12 @@ function loadFieldNames() {
   var layer_uuid = localStorage.getItem('current_layer');
   if (  layer_uuid != undefined ){
     $.get("../get_fields/", {"layer_uuid": layer_uuid},function() {
-    }).done(function(fields) {
+    }).done(function(data) {
+      if ( data["success"] == 0 ) {
+	console.log("ERROR: get_fields()", layer_uuid);
+	return;
+      }
+      var fields = data; 
       var field_names = [];
       for ( var key in fields ){
         field_names.push(key); 
@@ -253,13 +257,17 @@ function loadFieldNames() {
     });
   }
 }
-function fillForms() {
+function fillForms(is_new) {
   if ( localStorage["current_layer"] ) {
     $('#btnCreateW, #btnSpreg, #btnNewMap').css("opacity",1);
   }
   loadWnames();
   loadFieldNames();
-  loadMinPairDist();
+  if ( is_new ) {
+    setTimeout(loadMinPairDist, 3000);
+  } else {
+    loadMinPairDist();
+  }
 }
 // map function
 var data; // global for testing
@@ -321,10 +329,7 @@ function ShowJsonMap(jsonFilePath, content, onSuccess) {
   var createJsonMap = function(json) {
     console.log("draw map", jsonFilePath);
     data = json;
-    var canvas = d3.select('#' + containerID)
-          .append("canvas")
-          .attr("width", w)
-          .attr("height", h);
+    var canvas = $("<canvas width="+w+" height="+h+"></canvas>").appendTo($('#' + containerID));
     var minX = Number.POSITIVE_INFINITY,
         maxX = Number.NEGATIVE_INFINITY,
         minY = Number.POSITIVE_INFINITY,
@@ -361,10 +366,7 @@ function ShowJsonMap(jsonFilePath, content, onSuccess) {
         }
       });
     }
-
-    var context = canvas.node().getContext("2d");
-    var path = d3.geo.path().projection(matrix(-1, 0, 0, 1, 0, 0)).context(context);
-
+    var context = canvas[0].getContext("2d");
     context.strokeStyle = "#cccccc";
     context.fillStyle = "#ffffff";
 
@@ -386,10 +388,6 @@ function ShowJsonMap(jsonFilePath, content, onSuccess) {
       });
     });
     //context.fill();
-    if (onSuccess!= undefined) {
-      // save thumbnail
-      onSuccess(canvas[0][0]);
-    }
   }; // end createJsonMap
   if (content!=undefined) {
     createJsonMap(content);
@@ -561,13 +559,13 @@ $(document).ready(function() {
           data = JSON.parse(this.responseText);
           if ( data['layer_uuid'] != undefined) {
             localStorage['current_layer']= data["layer_uuid"];
-            fillForms();
-	    setTimeout(function(){
+            fillForms(true);
+	    setTimeout( function(){
 	      // get canvas
 	      var containerID = 'map' + mapCounter,
 		  canvas = $('#' + containerID + ' canvas');
 	      SaveMapThumbnail(canvas);
-	      }, 1000);
+	    }, 1000);
           }
         } catch(e){console.log(e);}
         // Ensure that the progress bar displays 100% at the end.
