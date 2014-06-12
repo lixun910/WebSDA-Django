@@ -29,12 +29,26 @@ def get_fields(request):
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'GET': 
         layer_uuid = request.GET.get("layer_uuid","")
-        print layer_uuid
         geodata = Geodata.objects.get(uuid = layer_uuid)
         if geodata:
             return HttpResponse(geodata.fields, content_type="application/json")
     return HttpResponse("ERROR")
 
+def get_minmaxdist(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    if request.method == 'GET': 
+        layer_uuid = request.GET.get("layer_uuid","")
+        geodata = Geodata.objects.get(uuid = layer_uuid)
+        if geodata:
+            min_val = geodata.minpairdist
+            bbox = eval(geodata.bbox)
+            max_val = ((bbox[1] - bbox[0])**2 + (bbox[3] - bbox[2])**2)**0.5
+            #return HttpResponse("{'min':%f, 'max':%f}"%(min_val,max_val), content_type="application/json")
+            return HttpResponse('{"min":%f, "max":%f}'%(min_val,max_val))
+    return HttpResponse("ERROR")
+    
 """
 Upload shape files to server. Write meta data to meta database.
 In background, export files to spatial database. 
@@ -86,6 +100,8 @@ def upload(request):
             # export to spatial database in background
             # note: this background process also compute min_threshold
             # and max_thresdhold
+            from django.db import connection 
+            connection.close()
             mp.Process(target=GeoDB.ExportToDB, args=(shp_path,layer_uuid)).start()
             print "uploaded done."
             return HttpResponse('{"layer_uuid":"%s"}'%layer_uuid, content_type="application/json")

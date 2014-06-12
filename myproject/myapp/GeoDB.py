@@ -27,10 +27,10 @@ def ExportToDB(shp_path, layer_uuid):
     print "export starting..", layer_uuid
     table_name = TBL_PREFIX + layer_uuid
     if settings.DB == 'postgres':
-        script = 'ogr2ogr -skipfailures -append -f "PostgreSQL" -overwrite PG:"host=%s dbname=%s user=%s password=%s" %s -nln %s'  % (db_host, db_name, db_uname, db_upwd, shp_path, table_name)
+        script = 'ogr2ogr -skipfailures -append -f "PostgreSQL" -overwrite PG:"host=%s dbname=%s user=%s password=%s" %s -nln %s > /dev/null'  % (db_host, db_name, db_uname, db_upwd, shp_path, table_name)
         rtn = subprocess.call( script, shell=True)
     else:
-        script = 'ogr2ogr -skipfailures -append -overwrite %s  %s -nln %s'  % (GEODB_PATH, shp_path, table_name)
+        script = 'ogr2ogr -skipfailures -append -overwrite %s  %s -nln %s > /dev/null'  % (GEODB_PATH, shp_path, table_name)
         rtn = subprocess.call( script, shell=True)
         
     if rtn != 0:
@@ -42,8 +42,13 @@ def ExportToDB(shp_path, layer_uuid):
         ExportToESRIShape(shp_path) 
         
     # compute meta data for weights creation
-    from pysal import min_threshold_dist_from_shapefile
-    thres = min_threshold_dist_from_shapefile(shp_path)
+    from pysal.weights.user import get_points_array_from_shapefile
+    points = get_points_array_from_shapefile(shp_path)
+    from scipy.spatial import cKDTree
+    kd = cKDTree(points)
+    nn = kd.query(points, k=2)
+    thres = nn[0].max(axis=0)[1]
+    
     from myproject.myapp.models import Geodata
     geodata = Geodata.objects.get(uuid = layer_uuid)
     if geodata:
@@ -99,17 +104,18 @@ def AddUniqueIDField(layer_uuid, field_name):
         print str(e)
         return False
 
-def AddField(layer_uuid, field_name, field_type):
+def AddField(layer_uuid, field_name, field_type, values):
     table_name = TBL_PREFIX + layer_uuid
     if field_type not in ['integer', 'numeric', '']:
         return False
    
-    # save new field to django db 
     from myproject.myapp.models import Geodata
     geodata = Geodata.objects.get(uuid = layer_uuid)
     if not geodata:
         return False
     fields = json.loads(geodata.fields)
+
+    # save new field to django db 
     fields[field_name] = field_type
     geodata.fields = fields
     geodata.save()

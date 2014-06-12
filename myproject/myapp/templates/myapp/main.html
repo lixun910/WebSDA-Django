@@ -204,6 +204,17 @@ function loadWnames() {
     });
   }
 }
+function loadMinPairDist() {
+  var layer_uuid = localStorage.getItem('current_layer');
+  if (  layer_uuid != undefined ) {
+    $.get("../get_minmaxdist/", {"layer_uuid": layer_uuid})
+    .done( function(data) {
+      data = JSON.parse(data);
+      $('#dist-slider').slider('option', {min: data['min'], max: data['max']});
+      $('#txt-dist-thr').val(data['min']);
+    });
+  }
+}
 function loadFieldNames() {
   var layer_uuid = localStorage.getItem('current_layer');
   if (  layer_uuid != undefined ){
@@ -240,6 +251,7 @@ function fillForms() {
   }
   loadWnames();
   loadFieldNames();
+  loadMinPairDist();
 }
 // map function
 var data; // global for testing
@@ -542,10 +554,12 @@ $(document).ready(function() {
           if ( data['layer_uuid'] != undefined) {
             localStorage['current_layer']= data["layer_uuid"];
             fillForms();
-            // get canvas
-            var containerID = 'map' + mapCounter,
-                canvas = $('#' + containerID + ' canvas');
-            SaveMapThumbnail(canvas);
+	    setTimeout(function(){
+	      // get canvas
+	      var containerID = 'map' + mapCounter,
+		  canvas = $('#' + containerID + ' canvas');
+	      SaveMapThumbnail(canvas);
+	      }, 1000);
           }
         } catch(e){console.log(e);}
         // Ensure that the progress bar displays 100% at the end.
@@ -1455,7 +1469,13 @@ $(function() {
   <div class="dlg-loading"></div>
   <script>
     $('.dlg-loading').hide();
-    $('#dist-slider').slider();
+    $('#dist-slider').slider({
+      min: 0,
+      max: 100,
+      slide: function( event, ui ) {
+	$('#txt-dist-thr').val(ui.value);
+      }
+    });
     $('#spn-pow-idst, #spn-cont-order, #spn-dist-knn').spinner();
     $('#tabs-dlg-weights').tabs();
 
@@ -1560,7 +1580,10 @@ $(function() {
                 dist_value = $('#txt-dist-thr').val();
               } else if ( dist_method == 2 ) {
                 dist_value = $('#txt-dist-thr').val() + "," + $('#spn-pow-idst').val();
-              }
+              } else {
+		alert("Please select a distance method.");
+		return;
+	      }
               
               post_param['dist_metric'] = dist_metric;
               post_param['dist_method'] = dist_method;

@@ -14,6 +14,7 @@ urlpatterns = patterns('myproject.myapp.views',
 
 urlpatterns += patterns('myproject.myapp.views_map',
     url(r'^get_fields/$', 'get_fields', name='get field names'),
+    url(r'^get_minmaxdist/$', 'get_minmaxdist', name='get'),
     url(r'^upload/$', 'upload', name='upload'),
     url(r'^upload_canvas/$', 'upload_canvas', name='upload canvas'),
     url(r'^draw/$', TemplateView.as_view(template_name='myapp/draw.html')),
