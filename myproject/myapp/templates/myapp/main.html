@@ -225,11 +225,11 @@ function loadMinPairDist() {
 function loadFieldNames() {
   var layer_uuid = localStorage.getItem('current_layer');
   if (  layer_uuid != undefined ){
-    $.get("../get_fields/", {"layer_uuid": layer_uuid},function() {
-    }).done(function(data) {
+    $.get("../get_fields/", {"layer_uuid": layer_uuid})
+    .done(function(data){
       if ( data["success"] == 0 ) {
-	console.log("ERROR: get_fields()", layer_uuid);
-	return;
+        console.log("ERROR: get_fields()", layer_uuid); 
+        return;
       }
       var fields = data; 
       var field_names = [];
@@ -262,7 +262,7 @@ function fillForms(is_new) {
     $('#btnCreateW, #btnSpreg, #btnNewMap').css("opacity",1);
   }
   loadWnames();
-  loadFieldNames();
+  setTimeout(loadFieldNames, 100);
   if ( is_new ) {
     setTimeout(loadMinPairDist, 3000);
   } else {
@@ -966,6 +966,7 @@ $('#btn-save-predy').click(function() {
   var count=0, param;
   $('#txt-spreg-predy').children("table").each(function(i,tbl) {
     var content = $(tbl).html().replace(/\<th\>|\<\/th\>|\<tbody\>|\<\/tbody\>|\<tr\>|\<\/tr\>|\<\/td\>/g,"").replace(/\<td\>/g,",");
+    if (param == undefined) param = {};
     param["predy" + i] = content;
     count = i;
   });
@@ -973,10 +974,17 @@ $('#btn-save-predy').click(function() {
   if (param && layer_uuid) {
     param["n"] = count+1;
     param["layer_uuid"] = layer_uuid;
-    param[csrfmiddlewaretoken] = {{csrf_token}};
-    $.post("../spreg_save_result", params, function() {
+    param["csrfmiddlewaretoken"] = "{{csrf_token}}";
+    
+    $(this).attr("disabled", "disabled");
+    $(html_load_img).insertAfter("#btn-save-predy");
+     
+    $.post("../save_spreg_result/", param, function() {
     }).done( function(result) {
       console.log(result);
+    }).always( function() {
+      $("#btn-save-predy").removeAttr("disabled");
+      $("#btn-save-predy").next().remove();
     });
   }
 });

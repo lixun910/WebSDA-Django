@@ -40,7 +40,7 @@ def save_spreg_result(request):
         n = request.POST.get("n", 0)
         if layer_uuid and n > 0:
             for i in range(int(n)): 
-                data = request.POST.get("predy" + i,None)
+                data = request.POST.get("predy%d"%i,None)
                 if data:
                     pred_vals = []
                     residuals = []

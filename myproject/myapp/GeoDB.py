@@ -3,7 +3,7 @@ import subprocess
 from osgeo import ogr
 from django.conf import settings
 
-TBL_PREFIX = "D"
+TBL_PREFIX = "d"
 
 DS = None
 if DS is None:
@@ -123,10 +123,11 @@ def AddField(layer_uuid, field_name, field_type, values):
     geodata = Geodata.objects.get(uuid = layer_uuid)
     if not geodata:
         return False
-    fields = json.loads(geodata.fields)
+    #fields = json.loads(geodata.fields)
+    fields = eval(geodata.fields)
 
     # save new field to django db 
-    fields[field_name] = field_type
+    fields[field_name] = ["Integer","Real","String"][field_type]
     geodata.fields = fields
     geodata.save()
     
@@ -189,13 +190,11 @@ def GetTableData(layer_uuid, column_names, drivername=None, filepath=None):
                 colum_pos[key].append(col_type)
                 break
 
-    print "column details", colum_pos
     column_values = {}
     for col_name in column_names:
         column_values[col_name] = []
 
     n = lyr.GetFeatureCount()
-    print "feature number", n
     lyr.ResetReading()
     feat = lyr.GetNextFeature()
     while feat:

@@ -28,5 +28,6 @@ urlpatterns += patterns('myproject.myapp.views_weights',
 )    
 urlpatterns += patterns('myproject.myapp.views_spreg',
     url(r'^save_spreg_p/$', 'save_spreg_preference', name='save spreg preference'),
+    url(r'^save_spreg_result/$', 'save_spreg_result', name='save spreg result'),
     url(r'^spatial_regression/$', 'spatial_regression', name='spatial regression'),
 )    

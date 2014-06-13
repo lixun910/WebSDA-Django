@@ -31,7 +31,10 @@ def get_fields(request):
         layer_uuid = request.GET.get("layer_uuid","")
         geodata = Geodata.objects.get(uuid = layer_uuid)
         if geodata:
-            return HttpResponse(geodata.fields, content_type="application/json")
+            fields = str(geodata.fields)
+            fields = fields.replace("'","\"")
+            print fields
+            return HttpResponse(fields, content_type="application/json")
     return HttpResponse(RSP_FAIL, content_type="application/json")
 
 def get_minmaxdist(request):
