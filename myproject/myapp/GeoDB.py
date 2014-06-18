@@ -6,31 +6,41 @@ from django.conf import settings
 TBL_PREFIX = "d"
 
 DS = None
-if DS is None:
-    print 'Connecting to GeoDB'
-    if settings.DB == 'postgres':
-        db_set = settings.DATABASES['default']
-        db_host = db_set['HOST']
-        db_port = db_set['PORT']
-        db_uname = db_set['USER']
-        db_upwd = db_set['PASSWORD']
-        db_name = db_set['NAME']
-        conn_str = "PG: host=%s dbname=%s user=%s password=%s" % (db_host, db_name, db_uname, db_upwd)
-        DS = ogr.Open(conn_str) 
-    else:
-        GEODB_PATH = os.path.realpath(os.path.dirname(__file__)) + '/../database/geodata.sqlite'
-        SQLITE_DRIVER = ogr.GetDriverByName('SQLite')
-        DS = SQLITE_DRIVER.Open(GEODB_PATH, 0) # readonly
-    print 'OK to GeoDB'
+db_host = None
+db_port = None
+db_uname = None
+db_upwd = None
+db_name = None
 
-if DS is None:
-    print 'Connect to GeoDB failed'
+def GetDS():
+    global DS
+    if DS is None:
+        print 'Connecting to GeoDB'
+        if settings.DB == 'postgres':
+            db_set = settings.DATABASES['default']
+            global db_host, db_port, db_uname, db_upwd, db_name
+            db_host = db_set['HOST']
+            db_port = db_set['PORT']
+            db_uname = db_set['USER']
+            db_upwd = db_set['PASSWORD']
+            db_name = db_set['NAME']
+            conn_str = "PG: host=%s dbname=%s user=%s password=%s" % (db_host, db_name, db_uname, db_upwd)
+            DS = ogr.Open(conn_str) 
+        else:
+            GEODB_PATH = os.path.realpath(os.path.dirname(__file__)) + '/../database/geodata.sqlite'
+            SQLITE_DRIVER = ogr.GetDriverByName('SQLite')
+            DS = SQLITE_DRIVER.Open(GEODB_PATH, 0) # readonly
+        print 'OK to GeoDB'
+        return DS
+    else:
+        print 'return cached DS'
+        return DS
 
 def ExportToDB(shp_path, layer_uuid):
     print "export starting..", layer_uuid
     table_name = TBL_PREFIX + layer_uuid
     if settings.DB == 'postgres':
-        script = 'ogr2ogr -skipfailures -append -f "PostgreSQL" -overwrite PG:"host=%s dbname=%s user=%s password=%s" %s -nln %s > /dev/null'  % (db_host, db_name, db_uname, db_upwd, shp_path, table_name)
+        script = 'ogr2ogr -skipfailures -append -f "PostgreSQL" -overwrite PG:"host=%s dbname=%s user=%s password=%s" %s -nln %s -nlt GEOMETRY > /dev/null'  % (db_host, db_name, db_uname, db_upwd, shp_path, table_name)
         rtn = subprocess.call( script, shell=True)
     else:
         script = 'ogr2ogr -skipfailures -append -overwrite %s  %s -nln %s > /dev/null'  % (GEODB_PATH, shp_path, table_name)
@@ -71,18 +81,20 @@ def ExportToESRIShape(json_path):
         pass
 
 def IsLayerExist(layer_uuid):
+    ds = GetDS()
     table_name = TBL_PREFIX + layer_uuid
-    layer = DS.GetLayer(table_name)
+    layer = ds.GetLayer(table_name)
     if layer: 
         return True
     else:
         return False
 
 def IsFieldUnique(layer_uuid, field_name):
+    ds = GetDS()
     table_name = TBL_PREFIX + layer_uuid
     sql = "SELECT count(%s) as a, count(distinct %s) as b from %s" % (field_name, field_name, table_name)
-    tmp_layer = DS.ExecuteSQL(str(sql))
-    print str(sql), DS, tmp_layer
+    tmp_layer = ds.ExecuteSQL(str(sql))
+    print str(sql), ds, tmp_layer
     tmp_layer.ResetReading()
     feature = tmp_layer.GetNextFeature()
     all_n = feature.GetFieldAsInteger(0) 
@@ -94,13 +106,14 @@ def IsFieldUnique(layer_uuid, field_name):
         return False
 
 def AddUniqueIDField(layer_uuid, field_name):
+    ds = GetDS()
     table_name = TBL_PREFIX + layer_uuid
     # add field first
     try:
         sql = "alter table %s add column %s integer" % (table_name, field_name)
-        tmp_layer = DS.ExecuteSQL(str(sql))
+        tmp_layer = ds.ExecuteSQL(str(sql))
         sql = "update %s set %s = ogc_fid" % (table_name, field_name)
-        tmp_layer = DS.ExecuteSQL(str(sql))
+        tmp_layer = ds.ExecuteSQL(str(sql))
         return True
     except Exception, e:
         print "AddUniqueIDField() error"
@@ -108,16 +121,17 @@ def AddUniqueIDField(layer_uuid, field_name):
         return False
 
 def AddField(layer_uuid, field_name, field_type, values):
+    ds = GetDS()
     table_name = TBL_PREFIX + layer_uuid
     field_db_type = ['integer', 'numeric', 'varchar(255)'][field_type]
    
     if field_name and values:
         sql = "alter table %s add column %s %s" % (table_name, field_name, field_db_type)
-        tmp_layer = DS.ExecuteSQL(str(sql))
+        tmp_layer = ds.ExecuteSQL(str(sql))
         for i, val in enumerate(values):
             if field_type == 2: val = "'%s'" % val
             sql = "update %s set %s=%s where ogc_fid=%d" % (table_name, field_name, val, i+1)
-            DS.ExecuteSQL(str(sql))
+            ds.ExecuteSQL(str(sql))
    
     from myproject.myapp.models import Geodata
     geodata = Geodata.objects.get(uuid = layer_uuid)
@@ -137,9 +151,10 @@ def GetDataSource(drivername, filepath):
     return ds
     
 def GetMetaData(layer_uuid, drivername=None, filepath=None):
+    ds = GetDS()
     table_name = TBL_PREFIX + layer_uuid
     lyr = None
-    ds = GetDataSource(drivername,filepath) if drivername and filepath else DS 
+    ds = GetDataSource(drivername,filepath) if drivername and filepath else ds 
     lyr = ds.GetLayer(0) if drivername=="ESRI shapefile" else ds.GetLayer(table_name)
     if lyr is None:
         return None
@@ -170,8 +185,9 @@ def GetGeometries(layer_uuid):
 
 # 0 Integer 2 Real 4 String
 def GetTableData(layer_uuid, column_names, drivername=None, filepath=None):
+    ds = GetDS()
     table_name = TBL_PREFIX + layer_uuid
-    lyr = DS.GetLayer(table_name)
+    lyr = ds.GetLayer(table_name)
     if lyr is None:
         print "DS.GetLayer is none"
         return None
