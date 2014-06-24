@@ -13,20 +13,22 @@ $(document).ready(function() {
   //$('#mapCanvas').width(winW).height(winH);
   localStorage.clear();
   $(window).bind('storage', function(e) {
-    var select_id = parseInt(localStorage.getItem('highlight'));
+    var select_id = localStorage.getItem('highlight').split(",");
+    for ( var i=0; i<select_id.length; i++ ) select_id[i] = parseInt(select_id[i]);
     console.log(select_id);
     if ( map ) {
-      map.highligh(select_id);
+      map.highlight(select_id);
     }
   });
 
   var map; 
-  d3.json("http://127.0.0.1:8000/media/temp/nat.json",function(error,json){
+  d3.json("http://127.0.0.1:8000/media/temp/chicago.json",function(error,json){
+    console.log(error);
     map = new GeoVizMap(json, document.getElementById('mapCanvas'));
   });
 });
 </script>
 <body>
-<canvas id="mapCanvas" width=1000 height=600></canvas>
+<canvas id="mapCanvas" width="100%" height="100%"></canvas>
 </body>
 </html>

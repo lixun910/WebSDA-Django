@@ -19,6 +19,25 @@ import GeoDB
 logger = logging.getLogger(__name__)
 
 
+def new_map(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    if request.method == 'GET': 
+        layer_uuid = request.GET.get("layer_uuid","")
+        shp_url = get_file_url(userid, layer_uuid)
+        if shp_url:
+            shp_location, shp_name = shp_url
+            json_location = shp_location[:-3] + "json"
+            print json_location
+            if not os.path.isfile(json_location):
+                return render_to_response(
+                    'myapp/map.html',
+                    {'json_url': json_location},
+                    context_instance=RequestContext(request)
+                )
+    return HttpResponse(RSP_FAIL, content_type="application/json")
+
 """
 Get field names from a map layer. 
 The layer_uuid is used to query from Geodata database.

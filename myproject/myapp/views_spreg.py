@@ -22,14 +22,31 @@ from views_utils import helper_get_W_list
 logger = logging.getLogger(__name__)
 
 def save_spreg_preference(request):
-    print request.POST
     userid = request.session.get('userid', False)
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'POST':
-        pref = request.POST.get("data", None)
+        spreg_str = json.dumps( { k:v for k,v in request.POST.iterlists() \
+                                  if k != "csrfmiddlewaretoken"})
+        try:
+            pref = Preference.objects.get(userid = userid)
+            pref.spreg = spreg_str
+            pref.save()
+        except Preference.DoesNotExist:
+            new_pref = Preference(userid=userid, spreg=spreg_str)
+            new_pref.save()
         return HttpResponse("1")
     return HttpResponse("0")
+
+def load_spreg_preference(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    try:
+        pref = Preference.objects.get(userid = userid)
+        return HttpResponse(pref.spreg, content_type="application/json")
+    except Preference.DoesNotExist:
+        return HttpResponse(RSP_FAIL, content_type="application/json")
     
 def save_spreg_result(request):
     userid = request.session.get('userid', False)
@@ -84,10 +101,8 @@ def spatial_regression(request):
     name_r = request.POST.get("r",None) # one col
     name_t = request.POST.get("t",None) # one col
    
-    print request.POST 
-    
-    if not layer_uuid and not name_y and not name_x and model_type not in [0,1,2,3] and \
-       model_method not in [0,1,2]:
+    if not layer_uuid and not name_y and not name_x \
+       and model_type not in [0,1,2,3] and model_method not in [0,1,2]:
         result["message"] = "Parameters are not legal."
         return HttpResponse(json.dumps(result))
     
@@ -111,11 +126,10 @@ def spatial_regression(request):
     if name_r: request_col_names.append(name_r)
     if name_t: request_col_names.append(name_t)
     data = GeoDB.GetTableData(str(layer_uuid), request_col_names)
-    print "data",data
     y = np.array([data[name_y]]).T
     ye = np.array([data[name] for name in name_ye]).T if name_ye else None
     x = np.array([data[name] for name in name_x]).T
-    h = np.array([data[name] for name in name_h]).T if name_h else None
+    h = np.array([data[name] for name in name_h]).T if name_h else []
     r = np.array(data[name_r]) if name_r else None
     t = np.array(data[name_t]) if name_t else None
     #print y, ye, x, h, r, t 
@@ -184,7 +198,6 @@ def spatial_regression(request):
         model_result[model_id] = {'summary':model.summary,'predy':model.predy.T.tolist(),'residuals':model.u.T.tolist()}
     result['report'] = model_result
     result['success'] = 1
-    print result
     return HttpResponse(json.dumps(result))
 
     

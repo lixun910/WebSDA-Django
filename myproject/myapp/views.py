@@ -56,7 +56,7 @@ def main(request):
             first_geodata = layer
     # render main page with userid, shps/tables, weights
     return render_to_response(
-        'myapp/main.html', {
+        'myapp/main.html', {'test': {0:1},
             'userid': userid, 'geodata': geodata_content, \
             'geodata0': first_geodata,'n': len(geodata), \
             'nn':range(1,len(geodata)+1),\

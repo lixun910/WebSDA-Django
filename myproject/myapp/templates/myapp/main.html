@@ -178,8 +178,23 @@ var html_load_img = "<img src={{url_prefix}}/media/img/loading_small.gif>",
 // fill forms and controls after uploading data files
 function refillCombobox(kv) { }
 function sortKeys() { }
-function toggleTubar(isPts) {
-  
+function toggleTubar(isPts) { }
+function loadSpregP() {
+  $.get("../get_spreg_p/", {},function() {
+  }).done(function(data) {
+    if ( "success" in data ) {
+      console.log("get spreg preference failed.");
+    } else {
+      for ( var k in data ) {
+	var v = data[k];
+	console.log(k, v);
+	if ( k == "gmm-comp-inv" || k == "ml-method" ) {
+	} else {
+	  //$('input[name='+k+'][value=
+	}
+      }
+    }
+  });
 }
 function loadWnames() {
   var layer_uuid = localStorage.getItem('current_layer');
@@ -263,6 +278,7 @@ function fillForms(is_new) {
   }
   loadWnames();
   setTimeout(loadFieldNames, 100);
+  setTimeout(loadSpregP, 100);
   if ( is_new ) {
     setTimeout(loadMinPairDist, 3000);
   } else {
@@ -1034,10 +1050,10 @@ $('#btn-save-predy').click(function() {
       <p><b>Compute Standard Deviation with N or N-K</b></p>
       <table>
         <tr><td></td><td width="40">N-K</td><td width="40">N</td></tr>
-        <tr><td>OLS</td><td><input type="radio" name="n-k" value="ols" checked></td><td><input type="radio" name="n" id="ols"></td></tr>
-        <tr><td>2SLS</td><td><input type="radio" name="n-k" value="2sls"></td><td><input type="radio" name="n" value="2sls" checked></td></tr>
-        <tr><td>GM-Lag</td><td><input type="radio" name="n-k" value="gm-lag"></td><td><input type="radio" name="n" value="gm-lg" checked></td></tr>
-        <tr><td>All Other Models</td><td></td><td><input type="radio" name="n" value="other" checked></td></tr>
+        <tr><td>OLS</td><td><input type="radio" name="std-ols" value="0" checked></td><td><input type="radio" name="std-ols" value="1"></td></tr>
+        <tr><td>2SLS</td><td><input type="radio" name="std-2sls" value="0"></td><td><input type="radio" name="std-2sls" value="1" checked></td></tr>
+        <tr><td>GM-Lag</td><td><input type="radio" name="std-gm" value="0"></td><td><input type="radio" name="std-gm" value="1" checked></td></tr>
+        <tr><td>All Other Models</td><td><input type="radio" name="std-other" value="0"></td><td><input type="radio" name="std-other" value="1" checked></td></tr>
       </table>
     </div>
     <div id="tabs-2">
@@ -1247,6 +1263,7 @@ $(function() {
         $( this ).dialog( "close" );
       },
       "Save": function() {
+	console.log($("#form-pref").serialize());
         $.ajax({
           url: "../save_spreg_p/",
           type: "post",

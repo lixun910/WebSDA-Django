@@ -127,16 +127,18 @@ def get_weights_names(request):
 
     if request.method == 'GET': 
         layer_uuid = request.GET.get('layer_uuid','')
-        file_url, shpfilename = get_file_url(userid, layer_uuid)
-        w_array = Weights.objects.filter(userid = userid).filter(shpfilename = shpfilename)
-        w_names = {}
-        for w in w_array:
-            w_names[w.name] = {}
-            w_names[w.name]["uuid"] = w.uuid
-            w_names[w.name]["type"] = w.wtype
-        json_result = json.dumps(w_names)
-        return HttpResponse(json_result, content_type="application/json")
-    return HttpResponse(RSP_FAIL)
+        file_obj = get_file_url(userid, layer_uuid)
+        if file_obj:
+            file_url, shpfilename = file_obj
+            w_array = Weights.objects.filter(userid = userid).filter(shpfilename = shpfilename)
+            w_names = {}
+            for w in w_array:
+                w_names[w.name] = {}
+                w_names[w.name]["uuid"] = w.uuid
+                w_names[w.name]["type"] = w.wtype
+            json_result = json.dumps(w_names)
+            return HttpResponse(json_result, content_type="application/json")
+    return HttpResponse(RSP_FAIL, content_type="application/json")
 
 def check_w(request):
     userid = request.session.get('userid', False)

@@ -19,13 +19,13 @@ RSP_FAIL = '{"success":0}'
 Get reletive url of shape files that user uploaded to server.
 """
 def get_file_url(userid, layer_uuid):
-    geodata = Geodata.objects.get(uuid=layer_uuid)
-    if geodata:
+    try:
+        geodata = Geodata.objects.get(uuid=layer_uuid)
         file_uuid = md5(geodata.userid + geodata.origfilename).hexdigest()
         document = Document.objects.get(uuid=file_uuid)
-        if document:
-            return document.docfile.url, document.filename
-    return None
+        return document.docfile.url, document.filename
+    except:
+        return None
 
 def create_w_uuid(userid, layer_uuid, w_name):
     file_url, shpfilename = get_file_url(userid, layer_uuid) 

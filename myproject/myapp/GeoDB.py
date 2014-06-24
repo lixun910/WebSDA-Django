@@ -54,6 +54,9 @@ def ExportToDB(shp_path, layer_uuid):
     if shp_path.endswith(".json") or shp_path.endswith(".geojson"):
         ExportToESRIShape(shp_path) 
         
+    if shp_path.endswith(".shp"):
+        ExportToJSON(shp_path) 
+        
     # compute meta data for weights creation
     from pysal.weights.user import get_points_array_from_shapefile
     points = get_points_array_from_shapefile(shp_path)
@@ -80,6 +83,16 @@ def ExportToESRIShape(json_path):
         # write to log
         pass
 
+def ExportToJSON(shp_path):
+    # will be called in subprocess
+    import subprocess
+    json_path = shp_path[:-3] + ".json"
+    rtn = subprocess.check_call(\
+        ["ogr2ogr"," -select \"\" -f \"GeoJSON\"",json_path,shp_path])
+    if rtn != 0:
+        # write to log
+        pass
+    
 def IsLayerExist(layer_uuid):
     ds = GetDS()
     table_name = TBL_PREFIX + layer_uuid
