@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
-from myproject.myapp.models import Weights, Geodata, Preference
+from myproject.myapp.models import Weights, Geodata, Preference,SpregModel
 
 import logging
 import numpy as np
@@ -17,7 +17,7 @@ from pysal import W
 
 import GeoDB
 from gs_dispatcher import DEFAULT_SPREG_CONFIG, Spmodel
-from views_utils import helper_get_W_list
+from views_utils import helper_get_W_list, RSP_FAIL, RSP_OK
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +26,25 @@ def save_spreg_preference(request):
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'POST':
-        spreg_str = json.dumps( { k:v for k,v in request.POST.iterlists() \
-                                  if k != "csrfmiddlewaretoken"})
+        spreg_conf = DEFAULT_SPREG_CONFIG
+        for k,v in request.POST.iterlists():
+            if k.startswith("sig2n_k"):
+                if v == "0": spreg_conf[k] = True
+                else: spreg_conf[k] = False
+            elif k in ['gmm_epsilon', 'gmm_max_iter', 'instruments_w_lags', \
+                       'other_missingValue', 'ml_epsilon', 'ml_method',\
+                       'gmm_inv_method']:
+                if v != "":
+                    spreg_conf[k] = v
+            else:
+                # checkbox
+                if v == "on":
+                    spreg_conf[k] = True
+                else:
+                    spreg_conf[k] = False
+            
+        spreg_str = json.dumps( spreg_conf)
+        print spreg_str
         try:
             pref = Preference.objects.get(userid = userid)
             pref.spreg = spreg_str
@@ -71,6 +88,35 @@ def save_spreg_result(request):
                     
             return HttpResponse("1")
     return HttpResponse("0")
+    
+def save_spreg_model(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    if request.method == 'POST': 
+        layer_uuid = request.POST.get("layer_uuid")
+        model_name = request.POST.get("name")
+        wuuids_model = request.POST.getlist("w")
+        wuuids_kernel = request.POST.getlist("wk")
+        model_type = request.POST.get("type")
+        model_method = request.POST.get("method")
+        stderror = request.POST.get("stderror")
+        name_y = request.POST.get("y")
+        name_x = request.POST.getlist("x")
+        name_ye = request.POST.getlist("ye","")
+        name_h = request.POST.getlist("h","")
+        name_r = request.POST.get("r","") # one col
+        name_t = request.POST.get("t","") # one col
+        content = {'modelw':wuuids_model, 'kernelw':wuuids_kernel, \
+                   'type': model_type, 'method': model_method, \
+                   'stderror': stderror, 'y': name_y, 'x': name_x, \
+                   'ye': name_ye, 'h': name_h, 'r': name_r, 't': name_t}
+        content = json.dumps(content)
+        new_sp_model = SpregModel(userid=userid, layeruuid=layer_uuid, name=model_name, content=content)
+        new_sp_model.save();
+        return HttpResponse(RSP_OK, content_type="application/json")
+    return HttpResponse(RSP_FAIL, content_type="application/json")
+    
     
 def spatial_regression(request):
     userid = request.session.get('userid', False)

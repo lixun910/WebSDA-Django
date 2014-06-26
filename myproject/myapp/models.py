@@ -43,3 +43,11 @@ class Preference(models.Model):
     spreg = models.TextField()
     category = models.TextField()
     
+class SpregModel(models.Model):
+    #md5([userid,layeruuid])
+    userid = models.CharField(max_length=80)
+    layeruuid = models.CharField(max_length=64, unique=True, db_index=True, primary_key=True)
+    name = models.CharField(max_length=255)
+    content = models.TextField()
+    
+    
