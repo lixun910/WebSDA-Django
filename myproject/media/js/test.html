@@ -22,7 +22,7 @@ $(document).ready(function() {
   });
 
   var map; 
-  d3.json("http://127.0.0.1:8000/media/temp/chicago.json",function(error,json){
+  d3.json("http://127.0.0.1:8000/media/temp/nat.json",function(error,json){
     console.log(error);
     map = new GeoVizMap(json, document.getElementById('mapCanvas'));
   });

@@ -11,7 +11,7 @@
 <script>
 $(document).ready(function() {
   //$('#mapCanvas').width(winW).height(winH);
-  localStorage.clear();
+  //localStorage.clear();
   $(window).bind('storage', function(e) {
     var select_id = localStorage.getItem('highlight').split(",");
     for ( var i=0; i<select_id.length; i++ ) select_id[i] = parseInt(select_id[i]);
