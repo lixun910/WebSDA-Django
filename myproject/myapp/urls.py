@@ -13,6 +13,7 @@ urlpatterns = patterns('myproject.myapp.views',
 ) 
 
 urlpatterns += patterns('myproject.myapp.views_map',
+    url(r'^get_dropbox_data/$', 'get_dropbox_data', name='get map data dropbox'),
     url(r'^new_map/$', 'new_map', name='get new map'),
     url(r'^get_fields/$', 'get_fields', name='get field names'),
     url(r'^get_minmaxdist/$', 'get_minmaxdist', name='get'),
@@ -30,6 +31,9 @@ urlpatterns += patterns('myproject.myapp.views_weights',
 urlpatterns += patterns('myproject.myapp.views_spreg',
     url(r'^get_spreg_p/$', 'load_spreg_preference', name='load spreg preference'),
     url(r'^save_spreg_p/$', 'save_spreg_preference', name='save spreg preference'),
+    url(r'^save_spreg_model/$', 'save_spreg_model', name='save spreg model'),
+    url(r'^load_spreg_model/$', 'load_spreg_model', name='load spreg model'),
+    url(r'^get_spreg_models/$', 'get_spreg_model_names', name='get spreg model names'),
     url(r'^save_spreg_result/$', 'save_spreg_result', name='save spreg result'),
     url(r'^spatial_regression/$', 'spatial_regression', name='spatial regression'),
 )    

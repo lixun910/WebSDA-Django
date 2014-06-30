@@ -42,9 +42,7 @@ def save_spreg_preference(request):
                     spreg_conf[k] = True
                 else:
                     spreg_conf[k] = False
-            
         spreg_str = json.dumps( spreg_conf)
-        print spreg_str
         try:
             pref = Preference.objects.get(userid = userid)
             pref.spreg = spreg_str
@@ -89,29 +87,61 @@ def save_spreg_result(request):
             return HttpResponse("1")
     return HttpResponse("0")
     
+def get_spreg_model_names(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    if request.method == 'GET': 
+        layer_uuid = request.GET.get("layer_uuid")
+        try:
+            print layer_uuid, userid
+            models = SpregModel.objects.filter(userid = userid).filter(layeruuid = layer_uuid)
+            model_names = []
+            for m in models:
+                model_names.append(m.name)
+            results = {"names": model_names}
+            return HttpResponse(json.dumps(results), content_type="application/json")
+        except:
+            pass
+    return HttpResponse(RSP_FAIL, content_type="application/json")
+    
+def load_spreg_model(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    if request.method == 'GET': 
+        layer_uuid = request.GET.get("layer_uuid")
+        name = request.GET.get("name")
+        try:
+            spreg = SpregModel.objects.filter(userid = userid).filter(layeruuid = layer_uuid).filter(name = name)
+            print spreg
+            return HttpResponse(spreg[0].content, content_type="application/json")
+        except:
+            pass
+    return HttpResponse(RSP_FAIL, content_type="application/json")
+        
 def save_spreg_model(request):
     userid = request.session.get('userid', False)
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'POST': 
+        print request.POST
         layer_uuid = request.POST.get("layer_uuid")
         model_name = request.POST.get("name")
-        wuuids_model = request.POST.getlist("w")
-        wuuids_kernel = request.POST.getlist("wk")
         model_type = request.POST.get("type")
         model_method = request.POST.get("method")
-        stderror = request.POST.get("stderror")
-        name_y = request.POST.get("y")
-        name_x = request.POST.getlist("x")
-        name_ye = request.POST.getlist("ye","")
-        name_h = request.POST.getlist("h","")
-        name_r = request.POST.get("r","") # one col
-        name_t = request.POST.get("t","") # one col
-        content = {'modelw':wuuids_model, 'kernelw':wuuids_kernel, \
-                   'type': model_type, 'method': model_method, \
-                   'stderror': stderror, 'y': name_y, 'x': name_x, \
-                   'ye': name_ye, 'h': name_h, 'r': name_r, 't': name_t}
+        wuuids_model = request.POST.getlist("w[]",[])
+        wuuids_kernel = request.POST.getlist("wk[]",[])
+        error = request.POST.getlist("error[]")
+        name_y = request.POST.getlist("y[]","")
+        name_x = request.POST.getlist("x[]",[])
+        name_ye = request.POST.getlist("ye[]",[])
+        name_h = request.POST.getlist("h[]",[])
+        name_r = request.POST.getlist("r[]",[]) # one col
+        name_t = request.POST.getlist("t[]",[]) # one col
+        content = {'name': model_name, 'w':wuuids_model, 'kw':wuuids_kernel, 'type': model_type, 'method': model_method, 'stderror': error, 'y': name_y, 'x': name_x, 'ye': name_ye, 'h': name_h, 'r': name_r, 't': name_t}
         content = json.dumps(content)
+        print content
         new_sp_model = SpregModel(userid=userid, layeruuid=layer_uuid, name=model_name, content=content)
         new_sp_model.save();
         return HttpResponse(RSP_OK, content_type="application/json")
@@ -180,13 +210,22 @@ def spatial_regression(request):
     t = np.array(data[name_t]) if name_t else None
     #print y, ye, x, h, r, t 
     layer_name = Geodata.objects.get(uuid=layer_uuid).origfilename
-    config = DEFAULT_SPREG_CONFIG
+    
     try:
         preference = Preference.objects.get(userid=userid)
-        if preference: 
-            config = preference.spreg 
+        config = json.loads(preference.spreg)
+        config['ml_epsilon'] = float(config['ml_epsilon'][0])
+        config['ml_full'] = config['ml_full'][0]
+        config['gmm_epsilon'] = float(config['gmm_epsilon'][0])
+        config['gmm_inv_method'] = config['gmm_inv_method'][0]
+        config['gmm_max_iter'] = int(config['gmm_max_iter'][0])
+        config['instruments_w_lags'] = int(config['instruments_w_lags'][0])
+        config['other_missingValue'] = config['other_missingValue'][0]
+        if config['other_missingValue']:
+            config['other_missingValue'] = float(config['other_missingValue'])
     except:
-        pass
+        config = DEFAULT_SPREG_CONFIG
+        
     predy_resid = None # not write to file
     models = Spmodel(
         name_ds=layer_name,

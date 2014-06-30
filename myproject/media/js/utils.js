@@ -66,6 +66,10 @@ function getName(path) {
     return path.substring(0, path.lastIndexOf('.'));
 }
 
+function getFileNameNoExt(url) {
+    return getName(getFileName(url));
+}
+
 function FetchZipResource(url, onSuccess) {
     console.log(url);
     var xhr = new XMLHttpRequest();

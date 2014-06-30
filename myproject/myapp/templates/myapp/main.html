@@ -279,6 +279,22 @@ function loadFieldNames() {
     });
   }
 }
+function loadModelNames() {
+  var layer_uuid = localStorage.getItem('current_layer');
+  if (  layer_uuid != undefined ) {
+    $.get("../get_spreg_models/", {"layer_uuid": layer_uuid})
+    .done(function(data){
+      console.log(data);
+      if ( data["success"] == 0 ) {
+        console.log("ERROR: get_spreg_models()", layer_uuid); 
+        return;
+      }
+      $.each(data, function(i, model) {
+        $('#open_spreg_model').append($('<option>',{value: model}).text(model));
+      });
+    });
+  }
+}
 function fillForms(is_new) {
   if ( localStorage["current_layer"] ) {
     $('#btnCreateW, #btnSpreg, #btnNewMap').css("opacity",1);
@@ -286,6 +302,7 @@ function fillForms(is_new) {
   loadWnames();
   setTimeout(loadFieldNames, 100);
   setTimeout(loadSpregP, 100);
+  setTimeout(loadModelNames, 100);
   if ( is_new ) {
     setTimeout(loadMinPairDist, 3000);
   } else {
@@ -393,41 +410,40 @@ function ShowJsonMap(jsonFilePath, content, onSuccess) {
     context.strokeStyle = "#cccccc";
     context.fillStyle = "#ffffff";
 
-  json.features.forEach( function(feat,i) {
-    feat.geometry.coordinates.forEach(function(coords,j) {
-      context.beginPath();
-      coords.forEach( function(xy,k) {
-        var x = xy[0], y = xy[1];
-        x = scaleX(x)+offsetW;
-        y = scaleY(y)+offsetH;
-        if (k === 0) {
-          context.moveTo(x,y);
-        } else {
-          context.lineTo(x,y);
-        }
+    json.features.forEach( function(feat,i) {
+      feat.geometry.coordinates.forEach(function(coords,j) {
+        context.beginPath();
+        coords.forEach( function(xy,k) {
+          var x = xy[0], y = xy[1];
+          x = scaleX(x)+offsetW;
+          y = scaleY(y)+offsetH;
+          if (k === 0) {
+            context.moveTo(x,y);
+          } else {
+            context.lineTo(x,y);
+          }
+        });
+        context.closePath();
+        context.stroke();
       });
-      context.closePath();
-      context.stroke();
     });
-  });
-  //context.fill();
-}; // end createJsonMap
-if (content!=undefined) {
-  createJsonMap(content);
-} else {
-  console.log("load from raw data");
-  var suffix = getSuffix(jsonFilePath);
-  if (suffix === "json" || suffix === "geojson") {
-    d3.json(jsonFilePath, createJsonMap);
-  } else if (suffix === "zip") {
-    FetchZipResource(jsonFilePath, function(data){
-      jsonContent = JSON.parse(data);
-      createJsonMap(jsonContent);
-    });
+    //context.fill();
+  }; // end createJsonMap
+  if (content!=undefined) {
+    createJsonMap(content);
+  } else {
+    console.log("load from raw data");
+    var suffix = getSuffix(jsonFilePath);
+    if (suffix === "json" || suffix === "geojson") {
+      d3.json(jsonFilePath, createJsonMap);
+    } else if (suffix === "zip") {
+      FetchZipResource(jsonFilePath, function(data){
+        jsonContent = JSON.parse(data);
+        createJsonMap(jsonContent);
+      });
+    }
   }
-}
 } 
-
 
 var socket;
 var db;
@@ -478,8 +494,43 @@ $(document).ready(function() {
   // Dropbox Plugin
   var dropboxOptions = {
     success: function(files) {
-      var fileLink = files[0].link;
-      ShowJsonMap(fileLink, undefined);
+      if ( files.length > 0 ) { 
+        var ready = false;
+        var fileLink = files[0].link;
+        var suffix = getSuffix(fileLink);
+        var params = {csrfmiddlewaretoken: '{{ csrf_token }}'};
+        if ( suffix === 'geojson' || suffix === 'json') {
+          ShowJsonMap(fileLink);
+          params['json'] = fileLink;
+          ready = true;
+        } else if ( $.inArray( suffix, ['shp', 'dbf','shx','prj']) >= 0) {
+          var shp, shx, dbf;
+          var fname = getFileNameNoExt( fileLink );
+          $.each(files, function(i, file) {
+            var f = file.link;
+            if ( getSuffix(f) == 'shp' && fname == getFileNameNoExt(f) ) shp = f;
+            else if ( getSuffix(f) == 'dbf' && fname == getFileNameNoExt(f) ) dbf = f;
+            else if ( getSuffix(f) == 'shx' && fname == getFileNameNoExt(f) ) shx = f;
+          });
+          if (shp && shx && dbf) {
+            new Shapefile(shp, function(content) {
+              ShowJsonMap(shp, content.geojson);
+            });
+            params['shp'] = shp;
+            params['shx'] = shx;
+            params['dbf'] = dbf;
+            ready = true;
+          } else {
+            alert("Please select .shp, .dbf, and .shx files at the same time.");
+          }
+        }
+        if ( ready ) {
+          $.post("../get_dropbox_data/", params)
+          .done( function(data) {
+            console.log(data);
+          });
+        }
+      }
     },
     cancel: function() {
       $('#progressCont').hide();
@@ -513,93 +564,91 @@ $(document).ready(function() {
       localStorage['isFileComplete'] = true;  
       return true;
 
-  } else if (suffix === 'shp' || suffix === 'dbf' || suffix === 'shx') {
-    shpfilename = getName(filename);
-    shp_exts = ['.shp','.dbf','.shx'];
-    lbl_ids = ['#lbl-drop-shp', '#lbl-drop-dbf', '#lbl-drop-shx'];
-    var flag = true;
-    for ( var i=0 ; i < shp_exts.length; i++) {
-      if (localStorage.getItem(shpfilename + shp_exts[i]) == undefined) {
-        $(lbl_ids[i]).addClass("uncheck_file");
-        flag = false;
-      } else {
-        $(lbl_ids[i]).removeClass("uncheck_file").addClass("check_file");
+    } else if (suffix === 'shp' || suffix === 'dbf' || suffix === 'shx') {
+      shpfilename = getName(filename);
+      shp_exts = ['.shp','.dbf','.shx'];
+      lbl_ids = ['#lbl-drop-shp', '#lbl-drop-dbf', '#lbl-drop-shx'];
+      var flag = true;
+      for ( var i=0 ; i < shp_exts.length; i++) {
+        if (localStorage.getItem(shpfilename + shp_exts[i]) == undefined) {
+          $(lbl_ids[i]).addClass("uncheck_file");
+          flag = false;
+        } else {
+          $(lbl_ids[i]).removeClass("uncheck_file").addClass("check_file");
+        }
+      }
+      if (flag == true) {
+        localStorage['isFileComplete'] = true;
+        return true;
       }
     }
-    if (flag == true) {
-      localStorage['isFileComplete'] = true;
-      return true;
-    }
+    return false;
   }
-  return false;
-}
-function handleFileSelect(evt) {
-  $("#"+evt.target.id).css("color", "#bbb");
-  evt.stopPropagation();
-  evt.preventDefault();
-
-  // Reset progress indicator on new file selection.
-  progress.style.width = '0%';
-  progress.textContent = '0%';
-
-  var formData = new FormData();
-  var files = evt.dataTransfer.files; // FileList object.
-  $.each(files, function(i, f) {
-    formData.append('docfile', f, f.name);
-    var fileurl = "local://" + f.name + f.size;
-    var suffix = getSuffix(f.name);
-    // draw geometries directly
-    if ( suffix == 'shp' ) {
-      var opts = { shp: f};
-      new Shapefile(opts, function(content){
-        var json = content.geojson;
-        ShowJsonMap(fileurl, json);
-      }); 
-    } else if ( suffix === 'json' || suffix === 'geojson' ) {
-      var reader = new FileReader();
-
-  //reader.onprogress = updateProgress;
-  reader.onabort = function(e) { console.log('File read cancelled');}; 
-  reader.onloadstart = function(e) {
-  };
-  reader.onloadend =  function(evt) {
-    if (evt.target.readyState == FileReader.DONE) {
-      var data = evt.target.result;
-      ShowJsonMap(fileurl, JSON.parse(data));
-    }
-  };
-  reader.readAsText(f);
-}
-localStorage[f.name] = true;
-});
-checkShpFileComplete(files[0].name);
-// upload files to server
-formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-var xhr = new XMLHttpRequest();
-xhr.open('POST', '../upload/');
-xhr.onload = function() {
-  try{
-    data = JSON.parse(this.responseText);
-    if ( data['layer_uuid'] != undefined) {
-      localStorage['current_layer']= data["layer_uuid"];
-      fillForms(true);
-      setTimeout( function(){
-        // get canvas
-        var containerID = 'map' + mapCounter,
-          canvas = $('#' + containerID + ' canvas');
-        SaveMapThumbnail(canvas);
-      }, 1000);
-    }
-  } catch(e){console.log(e);}
-  // Ensure that the progress bar displays 100% at the end.
-  progress.style.width = '100%';
-  progress.textContent = '100%';
-  setTimeout("document.getElementById('progress_bar').className='';", 5000);
-}; 
-xhr.upload.onprogress = updateProgress;
-xhr.send(formData);
-document.getElementById('progress_bar').className = 'loading';
-}
+  function handleFileSelect(evt) {
+    $("#"+evt.target.id).css("color", "#bbb");
+    evt.stopPropagation();
+    evt.preventDefault();
+  
+    // Reset progress indicator on new file selection.
+    progress.style.width = '0%';
+    progress.textContent = '0%';
+  
+    var formData = new FormData();
+    var files = evt.dataTransfer.files; // FileList object.
+    $.each(files, function(i, f) {
+      formData.append('docfile', f, f.name);
+      var fileurl = "local://" + f.name + f.size;
+      var suffix = getSuffix(f.name);
+      // draw geometries directly
+      if ( suffix == 'shp' ) {
+        var opts = { shp: f};
+        new Shapefile(opts, function(content){
+          var json = content.geojson;
+          ShowJsonMap(fileurl, json);
+        }); 
+      } else if ( suffix === 'json' || suffix === 'geojson' ) {
+        var reader = new FileReader();
+        //reader.onprogress = updateProgress;
+        reader.onabort = function(e) { console.log('File read cancelled');}; 
+        reader.onloadstart = function(e) { };
+        reader.onloadend =  function(evt) {
+          if (evt.target.readyState == FileReader.DONE) {
+            var data = evt.target.result;
+            ShowJsonMap(fileurl, JSON.parse(data));
+          }
+        };
+        reader.readAsText(f);
+      }
+      localStorage[f.name] = true;
+    });
+    checkShpFileComplete(files[0].name);
+    // upload files to server
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '../upload/');
+    xhr.onload = function() {
+      try{
+        data = JSON.parse(this.responseText);
+        if ( data['layer_uuid'] != undefined) {
+          localStorage['current_layer']= data["layer_uuid"];
+          fillForms(true);
+          setTimeout( function(){
+            // get canvas
+            var containerID = 'map' + mapCounter,
+              canvas = $('#' + containerID + ' canvas');
+            SaveMapThumbnail(canvas);
+          }, 1000);
+        }
+      } catch(e){console.log(e);}
+      // Ensure that the progress bar displays 100% at the end.
+      progress.style.width = '100%';
+      progress.textContent = '100%';
+      setTimeout("document.getElementById('progress_bar').className='';", 2000);
+    }; 
+    xhr.upload.onprogress = updateProgress;
+    xhr.send(formData);
+    document.getElementById('progress_bar').className = 'loading';
+  }
 
   function handleDragOver(evt) {
     evt.stopPropagation();
@@ -849,7 +898,7 @@ $('#btn_logout').click(function(){
 </style>
 <div id="dialog-regression" title="Spatial Regression Dialog"> 
   <p style="text-align: left">
-  <button id="first">Open Model</button>
+  <button id="btn_open_model">Open Model</button>
   <button id="btn_save_model">Save Model</button>
   <button id="sec">Reset Model</button>
   <button id="btn_preference">Preference</button>
@@ -892,7 +941,7 @@ $('#btn_logout').click(function(){
               </ol>
             </div>
             <h2><a href="#">T</a></h2>
-            <div class="drop_box" id="i_box">
+            <div class="drop_box" id="t_box">
               <ol>
                 <li class="placeholder">Add your items here</li>
               </ol>
@@ -1184,6 +1233,17 @@ $('#btn-save-predy').click(function() {
   </form>
 </div>
 
+<div id="dlg-save-model" title="Save Spreg Model">
+    <label for="name">Input a model name:</label>
+    <input type="text" id="model_name" class="text ui-widget-content ui-corner-all">
+</div>
+
+<div id="dlg-open-model" title="Open Spreg Model">
+    <label for="name">Select a spreg model:</label>
+    <select id="open_spreg_model">
+    </select>
+</div>
+
 <script>
 $(function() {
   $( "#y_catalog" ).accordion();
@@ -1281,9 +1341,9 @@ $(function() {
         },
         }
       });
-    $( "#dialog-spreg-result" ).dialog({
-  height: 500,
-  width: 600,
+  $( "#dialog-spreg-result" ).dialog({
+    height: 500,
+    width: 600,
     autoOpen: false,
     modal: true,
     dialogClass: "dialogWithDropShadow",
@@ -1297,46 +1357,125 @@ $(function() {
           $.download("../save_pdf/", rqt, "post");
           }
           },
-        Cancel: function() {
-      $( this ).dialog( "close" );
-      },
+        Cancel: function() {$( this ).dialog( "close" );},
         }
       });
     var options = { valueNames: ['name'] };
   var varList = new List('vars', options);
   
   $( "#dialog-regression" ).dialog({
-dialogClass: "dialogWithDropShadow",
+  dialogClass: "dialogWithDropShadow",
   width: 900,
     autoOpen: false,
     modal: true,
     });
     
+  $( "#dlg-save-model" ).dialog({
+    dialogClass: "dialogWithDropShadow",
+    width: 400,
+    height: 200,
+    autoOpen: false,
+    modal: true,
+    buttons: {
+      "Save": function() {
+        var layer_uuid = localStorage.getItem('current_layer');
+        if ( layer_uuid ) {
+          var w_list = $.GetValsFromObjs($('#sel-model-w-files :selected'));
+          var wk_list = $.GetValsFromObjs($('#sel-kernel-w-files :selected'));
+          var model_type = $('input:radio[name=model_type]:checked').val();
+          var method = $('input:radio[name=method]:checked').val();
+          var name = $('#model_name').val();
+          var x = $.GetTextsFromObjs($('#x_box li'));
+          var y = $.GetTextsFromObjs($('#y_box li'));
+          var ye = $.GetTextsFromObjs($('#ye_box li'));
+          var h = $.GetTextsFromObjs($('#inst_box li'));
+          var r = $.GetTextsFromObjs($('#r_box li'));
+          var t = $.GetTextsFromObjs($('#t_box li'));
+          var error = [0,0,0];
+          $('input:checkbox[name=stderror]').each(function(i,obj){
+            if (obj.checked) error[i] = 1;
+          });
+          params = { 'layer_uuid': layer_uuid, 'name': name, 'w': w_list, 'wk': wk_list, 'type': model_type, 'method': method, 'error': error, 'x': x, 'y': y, 'ye': ye, "h": h, "r": r, "t": t, csrfmiddlewaretoken: '{{ csrf_token }}'};
+          console.log(params);
+          $.post("../save_spreg_model/", params, function() {
+          }).done(function(data) { 
+            console.log(data); 
+            alert("Save model done.");
+          });
+        }
+        $(this).dialog("close");
+      },
+      Cancel: function() {$( this ).dialog( "close" );},
+    }
+  });
+    
+  $( "#dlg-open-model" ).dialog({
+    dialogClass: "dialogWithDropShadow",
+    width: 400,
+    height: 200,
+    autoOpen: false,
+    modal: true,
+    buttons: {
+      "Open": function() {
+        var layer_uuid = localStorage.getItem('current_layer');
+        if ( layer_uuid ) {
+          var model_name = $('#open_spreg_model').val();
+          if (model_name ) {
+            $.get("../load_spreg_model/", {'layer_uuid':layer_uuid,'name':model_name}, function(){})
+            .done(function(data) {
+              console.log(data);
+              if ( "success" in data ) {
+                console.log("load spreg model failed.");
+              } else {
+                $('input[name="model_type"][value='+data['type']+']').prop('checked', true);
+                $('input[name="method"][value='+data['method']+']').prop('checked', true);
+                var error = data['stderror'];
+                $('input:checkbox[name=stderror]').each(function(i,obj){
+                  if (error[i] == 1) obj.prop('checked', true);
+                });
+                $.each( data['w'], function(i, w) {$('#sel-model-w-files').val(w);});
+                $.each( data['kw'], function(i, w) {$('#sel-kernel-w-files').val(w);});
+                var load_vars = function( vars, box ) {
+                  $.each( vars, function(i, v) {
+                    if ( v && v.length > 0 ) {
+                      if (i == 0) box.find( ".placeholder" ).remove();
+                      var item = $('#ul-x-variables p').filter(function(i, p){ 
+                        return $(p).text() == v;
+                      }).parent().hide();
+                      var ctn = box.closest("div").children().first();
+                      $( "<li></li>" ).text(v).appendTo(ctn).dblclick(function(){
+                        $(this).remove();
+                        item.show();
+                      });
+                    }
+                  });
+                };
+                load_vars( data['y'], $('#y_box') );
+                load_vars( data['x'], $('#x_box') );
+                load_vars( data['ye'], $('#ye_box') );
+                load_vars( data['h'], $('#inst_box') );
+                load_vars( data['r'], $('#r_box') );
+                load_vars( data['t'], $('#t_box') );
+              } 
+            });
+          }
+        }
+        $(this).dialog("close");
+      },
+      Cancel: function() {$( this ).dialog( "close" );},
+    },
+  });
+    
   $( "#tabs" ).tabs();
   $( "#spreg-result-tabs" ).tabs();
   
-  $( "#first" ).button({icons: {primary: "ui-icon-folder-open"}});
+  $( "#btn_open_model" ).button({icons: {primary: "ui-icon-folder-open"}})
+  .click(function() {
+    $('#dlg-open-model').dialog('open');
+  });
   $( "#btn_save_model" ).button({icons: {primary: "ui-icon-disk"}})
   .click(function() {
-    var w_list = $.GetValsFromObjs($('#sel-model-w-files :selected'));
-    var wk_list = $.GetValsFromObjs($('#sel-kernel-w-files :selected'));
-    var model_type = $('input:radio[name=model_type]:checked').val();
-    var method = $('input:radio[name=method]:checked').val();
-    var x = $.GetTextsFromObjs($('#x_box li'));
-    var y = $.GetTextsFromObjs($('#y_box li'))[0];
-    var ye = $.GetTextsFromObjs($('#ye_box li'));
-    var h = $.GetTextsFromObjs($('#inst_box li'));
-    var r = $.GetTextsFromObjs($('#r_box li'));
-    var t = $.GetTextsFromObjs($('#t_box li'));
-    console.log(w_list, wk_list, model_type, method, x, y, ye, h, r, t);    
-    params = { 'layer_uuid': layer_uuid, 'w': w_list, 'wk': wk_list, 
-    'type': model_type, 'method': method, 'error': error, 'x': x, 'y': y,
-    'ye': ye, "h": h, "r": r, "t": t, 
-    csrfmiddlewaretoken: '{{ csrf_token }}'};
-    $.post("../save_spreg_model/", params, function() {
-    }).done(function(data) { 
-      
-    });
+    $('#dlg-save-model').dialog('open');
   });
   
   $( "#sec" ).button({icons: {primary: "ui-icon-)circle-close"}});

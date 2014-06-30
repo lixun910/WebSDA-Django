@@ -18,7 +18,15 @@ import GeoDB
 
 logger = logging.getLogger(__name__)
 
-
+def get_dropbox_data(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    if request.method == 'POST': 
+        print request.POST;
+        return HttpResponse(RSP_OK, content_type="application/json")
+    return HttpResponse(RSP_FAIL, content_type="application/json")
+    
 def new_map(request):
     userid = request.session.get('userid', False)
     if not userid:
