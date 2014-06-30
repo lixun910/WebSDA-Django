@@ -32,7 +32,7 @@ var GeoVizMap = function(geojson, mapcanvas, extent) {
   this.HLT_BRD_CLR = "black";
   this.HLT_CLR = "yellow";
   this.STROKE_CLR = "#CCCCCC";
-  this.FILL_CLR = "blue";
+  this.FILL_CLR = "green";
   this.LINE_WIDTH = 1;
   
   // members

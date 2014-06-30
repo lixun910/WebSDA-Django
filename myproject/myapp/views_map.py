@@ -41,7 +41,7 @@ def new_map(request):
             if not os.path.isfile(json_location):
                 return render_to_response(
                     'myapp/map.html',
-                    {'json_url': json_location},
+                    {'json_url': json_location,'url_prefix': settings.URL_PREFIX},
                     context_instance=RequestContext(request)
                 )
     return HttpResponse(RSP_FAIL, content_type="application/json")
