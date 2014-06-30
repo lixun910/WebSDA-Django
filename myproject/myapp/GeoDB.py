@@ -86,7 +86,7 @@ def ExportToESRIShape(json_path):
 def ExportToJSON(shp_path):
     # will be called in subprocess
     import subprocess
-    json_path = shp_path[:-3] + ".json"
+    json_path = shp_path[:-3] + "json"
     rtn = subprocess.check_call(\
         ["ogr2ogr"," -select \"\" -f \"GeoJSON\"",json_path,shp_path])
     if rtn != 0:
