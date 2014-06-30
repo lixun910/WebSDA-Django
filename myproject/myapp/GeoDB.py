@@ -77,8 +77,8 @@ def ExportToESRIShape(json_path):
     # will be called in subprocess
     import subprocess
     shp_path = json_path + ".shp"
-    rtn = subprocess.check_call(\
-        ["ogr2ogr","-f \"ESRI Shapefile\"",shp_path,json_path])
+    script = 'ogr2ogr -f "ESRI Shapefile" %s %s' %(shp_path,json_path)
+    rtn = subprocess.call( script, shell=True)
     if rtn != 0:
         # write to log
         pass
@@ -87,11 +87,8 @@ def ExportToJSON(shp_path):
     # will be called in subprocess
     import subprocess
     json_path = shp_path[:-3] + "json"
-    rtn = subprocess.check_call(\
-        ["ogr2ogr"," -select \"\" -f \"GeoJSON\"",json_path,shp_path])
-    if rtn != 0:
-        # write to log
-        pass
+    script = 'ogr2ogr -select "" -f "GeoJSON" %s %s' %(json_path,shp_path)
+    rtn = subprocess.call( script, shell=True)
     
 def IsLayerExist(layer_uuid):
     ds = GetDS()
