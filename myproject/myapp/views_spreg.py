@@ -278,8 +278,8 @@ def spatial_regression(request):
     model_result = {} 
     for i,model in enumerate(models):
         model_id = i
-        if len(w_list) == len(models):
-            model_id = w_list[i].name
+        #if len(w_list) == len(models):
+        #    model_id = w_list[i].name
         model_result[model_id] = {'summary':model.summary,'predy':model.predy.T.tolist(),'residuals':model.u.T.tolist()}
     result['report'] = model_result
     result['success'] = 1

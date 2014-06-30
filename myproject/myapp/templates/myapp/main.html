@@ -1083,8 +1083,9 @@ $('#btn-save-predy').click(function() {
   }).done( function(result) {
     console.log(result);
   }).always( function() {
-    $("#btn-save-predy").removeAttr("disabled");
+    //$("#btn-save-predy").removeAttr("disabled");
     $("#btn-save-predy").next().remove();
+    $(html_check_img).insertAfter("#btn-save-predy");
   });
 }
 });
@@ -1292,22 +1293,22 @@ $(function() {
     if ( model_type == 0 ) {
       $("input[name='method'], input[name='stderror']").prop('disabled', false);
       $('#ml, #gmm, #het').prop('disabled', true);
-      $('#ols').select();
+      $('#ols').prop('checked', true);
       $("input[name='stderror']").prop('checked', false);
     } else if ( model_type == 1 ) {
       $("input[name='method'], input[name='stderror']").prop('disabled', false);
       $('#ols, #het').prop('disabled', true);
-      $('#gmm').select();
+      $('#gmm').prop('checked', true);
       $("input[name='stderror']").prop('checked', false);
     } else if ( model_type == 2 ) {
       $("input[name='method'], input[name='stderror']").prop('disabled', false);
       $('#ols, #white, #hac').prop('disabled', true);
-      $('#gmm').select();
+      $('#gmm').prop('checked', true);
       $("input[name='stderror']").prop('checked', false);
     } else if ( model_type == 3 ) {
       $("input[name='method'], input[name='stderror']").prop('disabled', false);
       $('#ols, #ml, #white, #hac').prop('disabled', true);
-      $('#gmm').select();
+      $('#gmm').prop('checked', true);
       $("input[name='stderror']").prop('checked', false);
     }
   });
@@ -1513,19 +1514,23 @@ $(function() {
   var t = $.GetTextsFromObjs($('#t_box li'));
   // check error flag 
   var error = [0,0,0];
+  var conti = true;
   $('input:checkbox[name=stderror]').each(function(i,obj){
     if (obj.checked){ 
     error[i] = 1;
       if ( i==1 && w_list.length == 0 ) {
         alert("Please select weights file for model.");
+        conti = false;
         return;
       }
       if ( i==1 && wk_list.length == 0 ) {
         alert("Please select kernel weights file for model.");
+        conti = false;
         return;
       }
     }
   });
+  if ( conti == false) return;
   // run model
   params = { 'layer_uuid': layer_uuid, 'w': w_list, 'wk': wk_list, 'type': model_type, 'method': method, 'error': error, 'x': x, 'y': y, 'ye': ye, "h": h, "r": r, "t": t, csrfmiddlewaretoken: '{{ csrf_token }}'};
   $.post("../spatial_regression/", params, function() {
