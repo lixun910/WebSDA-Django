@@ -1024,8 +1024,8 @@ $('#btn_logout').click(function(){
       <li><a href="#tabs-1">Report</a></li>
       <li><a href="#tabs-2">Predicted Values and Residuals</a></li>
     </ul>
-    <div id="tabs-1" style="height:320px">
-      <textarea id="txt-spreg-summary" style="resize: none; width: 100%; padding: 10px; border: none; height: 100%; margin: -10px; border: 1px solid #ccc;"> </textarea>
+    <div id="tabs-1" style="height:100%">
+      <pre id="txt-spreg-summary" style="text-align:left; font-size: 12px; white-space:pre-wrap;width: 100%; padding: 10px; border: none; height: 100%; margin: -10px; border: 1px solid #ccc;"> </pre>
     </div>
     <div id="tabs-2" style="height:100%">
       <button id="btn-save-predy">Save values to datasource</button>
@@ -1261,7 +1261,7 @@ $(function() {
   $( ".drop_box ol" ).droppable({
     activeClass: "ui-state-default",
     hoverClass: "ui-state-hover",
-    accept: ":not(.ui-sortable-helper)",
+    accept: ":not(div)",
     drop: function( event, ui ) {
       $( this ).find( ".placeholder" ).remove();
       // customized behavior for different dropbox
@@ -1344,24 +1344,25 @@ $(function() {
       });
   $( "#dialog-spreg-result" ).dialog({
     height: 500,
-    width: 600,
+    width: 800,
     autoOpen: false,
     modal: true,
     dialogClass: "dialogWithDropShadow",
     buttons: {
-    "Save to pdf": function() {
-    //$( this ).dialog( "close" );
-      var layer_uuid = localStorage.getItem('current_layer');
+      "Save to pdf": function() {
+        //$( this ).dialog( "close" );
+        var layer_uuid = localStorage.getItem('current_layer');
         if ( layer_uuid ) {
-        var txt = $('#txt-spreg-summary').val();
-        var rqt = "layer_uuid=" + layer_uuid + "&text=" + txt + "&csrfmiddlewaretoken={{csrf_token}}";
+          var txt = $('#txt-spreg-summary').text();
+          var rqt = "layer_uuid=" + layer_uuid + "&text=" + txt + "&csrfmiddlewaretoken={{csrf_token}}";
           $.download("../save_pdf/", rqt, "post");
-          }
-          },
-        Cancel: function() {$( this ).dialog( "close" );},
         }
-      });
-    var options = { valueNames: ['name'] };
+      },
+      Cancel: function() {$( this ).dialog( "close" );},
+    }
+  });
+  
+  var options = { valueNames: ['name'] };
   var varList = new List('vars', options);
   
   $( "#dialog-regression" ).dialog({
@@ -1486,7 +1487,7 @@ $(function() {
   
   $( "#btn_result" ).button({icons: {primary: "ui-icon-document",}
   }).click(function(){
-  $('#dialog-spreg-result').dialog('open');
+    $('#dialog-spreg-result').dialog('open').draggable('disable');
   }).hide();
     
   $( "#btn_create_w" ).button({icons: {primary: "ui-icon-plus",}
@@ -1556,7 +1557,7 @@ $(function() {
             predy += "</table><br/><br/>";
           });
           $('#txt-spreg-predy').html(predy);
-          $('#txt-spreg-summary').val(summary);
+          $('#txt-spreg-summary').text(summary);
         }
         $('#btn_result').popupDiv('#divPop','Click this button to see result.');
       }
