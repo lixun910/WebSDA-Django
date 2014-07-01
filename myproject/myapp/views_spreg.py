@@ -195,20 +195,20 @@ def spatial_regression(request):
     LM_TEST = False
     if len(w_list) > 0 and model_type in ['Standard', 'Spatial Lag']:
         LM_TEST = True
-    request_col_names = name_x
+    request_col_names = [n for n in name_x]
     request_col_names.append(name_y)
     if name_ye: request_col_names += name_ye
     if name_h: request_col_names += name_h
     if name_r: request_col_names.append(name_r)
     if name_t: request_col_names.append(name_t)
     data = GeoDB.GetTableData(str(layer_uuid), request_col_names)
+    
     y = np.array([data[name_y]]).T
     ye = np.array([data[name] for name in name_ye]).T if name_ye else None
     x = np.array([data[name] for name in name_x]).T
     h = np.array([data[name] for name in name_h]).T if name_h else []
     r = np.array(data[name_r]) if name_r else None
     t = np.array(data[name_t]) if name_t else None
-    #print y, ye, x, h, r, t 
     layer_name = Geodata.objects.get(uuid=layer_uuid).origfilename
     
     try:
