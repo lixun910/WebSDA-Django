@@ -333,6 +333,7 @@ function CreateMapContainer(jsonFilePath) {
   $('#map-arr').removeClass('arrows').addClass('arrows');
   $('#map-nav').removeClass('navigation').addClass('navigation');
   localStorage[containerID] = jsonFilePath;
+  $('#slides_'+mapCounter).prop("checked", true);
   return containerID;
 }
 
@@ -356,7 +357,7 @@ function SaveMapThumbnail(canvas) {
 }
 
 var w = 600;
-var h = 379;
+var h = 400;
 function ShowJsonMap(jsonFilePath, content, onSuccess) {
   var containerID = CreateMapContainer(jsonFilePath);
   //Load GeoJSON data
@@ -403,7 +404,7 @@ function ShowJsonMap(jsonFilePath, content, onSuccess) {
     var context = canvas[0].getContext("2d");
     context.strokeStyle = "#cccccc";
     context.fillStyle = "#ffffff";
-
+    context.imageSmoothingEnabled= false;
     json.features.forEach( function(feat,i) {
       feat.geometry.coordinates.forEach(function(coords,j) {
         context.beginPath();
@@ -764,91 +765,91 @@ $('#btn_logout').click(function(){
   });
 });
 </script>
-<table>
-  <tr><td valign="top" width="100px">
-<div id="toolbar">
-  <div style="clear: left;"></div>
-  <table class="toolbar_tbl" align="left" >
-    <tr><td><div class="block_button" id="btnOpenData"></div></td></tr> 
-    <tr><td><div class="block_button" id="btnCreateW"></div></td></tr> 
-    <tr><td><div class="block_button" id="btnSpreg"></div></td></tr> 
-    <tr><td height="10px"></td></tr>
-    <tr><td><div class="block_button" id="btnAbout"></div></td></tr>
-      <!--
-      <td><div class="block_button" id="btnAddLayer"></div></td> 
-      <td><div class="block_button" id="btnSave"></div></td> 
-      <td><div class="block_button" id="btnShowTable"></div></td> 
-      <td><div class="block_button" id="btnWHistogram"></div></td> 
-      <td><div class="block_button" id="btnNewMap"></div></td> 
-      <td><div class="block_button" id="btnKDE"></div></td> 
-      <td><div class="block_button" id="btnScatterPlot"></div></td> 
-      <td><div class="block_button" id="btnHist"></div></td> 
-      <td><div class="block_button" id="btnPCP"></div></td> 
-      <td><div class="block_button" id="btnLISA"></div></td> 
-      -->
-  </table>
-</div>
+<table width="100%">
+  <tr><td width="45"></td>
+  <td valign="top" width="30">
+    <div id="toolbar">
+      <div style="clear: left;"></div>
+      <table class="toolbar_tbl" align="left" >
+        <tr><td><div class="block_button" id="btnOpenData"></div></td></tr> 
+        <tr><td><div class="block_button" id="btnCreateW"></div></td></tr> 
+        <tr><td><div class="block_button" id="btnSpreg"></div></td></tr> 
+        <tr><td height="10px"></td></tr>
+        <tr><td><div class="block_button" id="btnAbout"></div></td></tr>
+          <!--
+          <td><div class="block_button" id="btnAddLayer"></div></td> 
+          <td><div class="block_button" id="btnSave"></div></td> 
+          <td><div class="block_button" id="btnShowTable"></div></td> 
+          <td><div class="block_button" id="btnWHistogram"></div></td> 
+          <td><div class="block_button" id="btnNewMap"></div></td> 
+          <td><div class="block_button" id="btnKDE"></div></td> 
+          <td><div class="block_button" id="btnScatterPlot"></div></td> 
+          <td><div class="block_button" id="btnHist"></div></td> 
+          <td><div class="block_button" id="btnPCP"></div></td> 
+          <td><div class="block_button" id="btnLISA"></div></td> 
+          -->
+      </table>
+    </div>
   </td>
   <td>
-<div id="file_div"> 
-  <div id="main_div" style="width: 80%;margin: 0 auto;">
-    <div id="file_choose_div" style="width: 100%; margin: 0 auto;">
-      <div id="dropbox_div"></div>
-      <div id="dragdrop_div" style="margin-left: 350px;">
-        <div id="drop_zone">Drop files here
-          <p style="font-size:12px;"><label>*.json</label>&nbsp;&nbsp;or &nbsp;&nbsp;
-          <label  id="lbl-drop-shp">*.shp</label>&nbsp;<label id="lbl-drop-dbf">*.dbf</label>
-          &nbsp;<label id="lbl-drop-shx">.shx</label>&nbsp;&nbsp;or &nbsp;&nbsp;
-          <label>*.zip</label></p>
+    <div id="file_div"> 
+      <div id="main_div" style="width: 80%;margin: 0 auto;">
+        <div id="file_choose_div" style="width: 100%; margin: 0 auto;">
+          <div id="dropbox_div"></div>
+          <div id="dragdrop_div" style="margin-left: 350px;">
+            <div id="drop_zone">Drop files here
+              <p style="font-size:12px;"><label>*.json</label>&nbsp;&nbsp;or &nbsp;&nbsp;
+              <label  id="lbl-drop-shp">*.shp</label>&nbsp;<label id="lbl-drop-dbf">*.dbf</label>
+              &nbsp;<label id="lbl-drop-shx">.shx</label>&nbsp;&nbsp;or &nbsp;&nbsp;
+              <label>*.zip</label></p>
+            </div>
+            <div id="progress_bar"><div class="percent">0%</div></div>
+          </div>
         </div>
-        <div id="progress_bar"><div class="percent">0%</div></div>
       </div>
     </div>
-  </div>
-</div>
-
-<div id="preview"> 
-<div id="mapslider" class="csslider" style="z-index:100">
-  <input type="radio" name="slides" id="slides_1" checked />
-  <input type="radio" name="slides" id="slides_2" />
-  <input type="radio" name="slides" id="slides_3" />
-  <input type="radio" name="slides" id="slides_4" />
-  <input type="radio" name="slides" id="slides_5" />
-  <input type="radio" name="slides" id="slides_6" />
-  <input type="radio" name="slides" id="slides_7" />
-  <input type="radio" name="slides" id="slides_8" />
-  <input type="radio" name="slides" id="slides_9" />
-  <input type="radio" name="slides" id="slides_10" />
-  <ul>
-  {% if geodata %}
-    {% for i,layer in geodata.iteritems %}
-    <li>
-      <center> {{layer.origfilename}}
-        <div id="map{{i}}" class="map_div"><img id="{{layer.uuid}}" src="{{url_prefix}}{{layer.thumbnail}}"></div>
-      </center>
-    </li>
-    {% endfor %}
-  {% endif %}
-  </ul>
-  <div id="map-arr" class="arrows">
-  {% if geodata %}
-    {% for i in nn %}
-    <label onclick="SelectMap(this)" for="slides_{{i}}"></label>
-    {% endfor %}
-  {% endif %}
-  </div>
-  <div id="map-nav" class="navigation">
-    <div id="mapnav">
-    {% if geodata %}
-      {% for i in nn %}
-      <label for="slides_{{i}}"></label>
-      {% endfor %}
-    {% endif %}
+    
+    <div id="preview"> 
+      <div id="mapslider" class="csslider" style="z-index:100">
+        <input type="radio" name="slides" id="slides_1" checked />
+        <input type="radio" name="slides" id="slides_2" />
+        <input type="radio" name="slides" id="slides_3" />
+        <input type="radio" name="slides" id="slides_4" />
+        <input type="radio" name="slides" id="slides_5" />
+        <input type="radio" name="slides" id="slides_6" />
+        <input type="radio" name="slides" id="slides_7" />
+        <input type="radio" name="slides" id="slides_8" />
+        <input type="radio" name="slides" id="slides_9" />
+        <input type="radio" name="slides" id="slides_10" />
+        <ul>
+        {% if geodata %}
+          {% for i,layer in geodata.iteritems %}
+          <li>
+            <center> {{layer.origfilename}}
+              <div id="map{{i}}" class="map_div"><img id="{{layer.uuid}}" src="{{url_prefix}}{{layer.thumbnail}}"></div>
+            </center>
+          </li>
+          {% endfor %}
+        {% endif %}
+        </ul>
+        <div id="map-arr" class="arrows">
+        {% if geodata %}
+          {% for i in nn %}
+          <label onclick="SelectMap(this)" for="slides_{{i}}"></label>
+          {% endfor %}
+        {% endif %}
+        </div>
+        <div id="map-nav" class="navigation">
+          <div id="mapnav">
+          {% if geodata %}
+            {% for i in nn %}
+            <label for="slides_{{i}}"></label>
+            {% endfor %}
+          {% endif %}
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-</div>
-
   </td></tr>
 </table>
 
@@ -888,7 +889,6 @@ $('#btn_logout').click(function(){
   .est_tab { border: 1px #bbb solid; border-radius:5px; width: 32%; height: 120px; float: left; margin: 15px 1px 0 0; padding-left: 5px;}
   .est_tab p { margin: -5px 0 5px 5px; background-color: white; width: 100px; text-align:center; font-weight: bold;}
   .est_tab input { margin-bottom: 8px;}
-
 </style>
 <div id="dialog-regression" title="Spatial Regression Dialog"> 
   <p style="text-align: left">
@@ -900,10 +900,7 @@ $('#btn_logout').click(function(){
   <button id="btn_result">Show Result</button>
   </p>
   <table>
-    <tr>
-      <td>
-      </td>
-    </tr>
+    <tr><td></td></tr>
     <tr>
       <td valign="top">
         <div id="model_spec">
@@ -1360,11 +1357,11 @@ $(function() {
   var varList = new List('vars', options);
   
   $( "#dialog-regression" ).dialog({
-  dialogClass: "dialogWithDropShadow",
-  width: 900,
+    dialogClass: "dialogWithDropShadow",
+    width: 900,
     autoOpen: false,
     modal: true,
-    });
+  });
     
   $( "#dlg-save-model" ).dialog({
     dialogClass: "dialogWithDropShadow",
