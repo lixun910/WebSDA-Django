@@ -289,6 +289,7 @@ function loadModelNames() {
         console.log("ERROR: get_spreg_models()", layer_uuid); 
         return;
       }
+      $('#open_spreg_model').find('option').remove().end();
       $.each(data, function(i, model) {
         $('#open_spreg_model').append($('<option>',{value: model}).text(model));
       });
@@ -1402,6 +1403,7 @@ $(function() {
           $.post("../save_spreg_model/", params, function() {
           }).done(function(data) { 
             console.log(data); 
+            loadModelNames();
             alert("Save model done.");
           });
         }
@@ -1433,7 +1435,7 @@ $(function() {
                 $('input[name="method"][value='+data['method']+']').prop('checked', true);
                 var error = data['stderror'];
                 $('input:checkbox[name=stderror]').each(function(i,obj){
-                  if (error[i] == 1) obj.prop('checked', true);
+                  if (error[i] == 1) $(obj).prop('checked', true);
                 });
                 $.each( data['w'], function(i, w) {$('#sel-model-w-files').val(w);});
                 $.each( data['kw'], function(i, w) {$('#sel-kernel-w-files').val(w);});
