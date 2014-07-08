@@ -122,7 +122,7 @@ body {
   margin:0 auto;
 }
 .toolbar_tbl {
-  height: 80px;
+  margin-top: 20px; 
   border: none; 
   overflow: hidden;
 }
@@ -771,35 +771,32 @@ $('#btn_logout').click(function(){
   });
 });
 </script>
+<table>
+  <tr><td valign="top">
 <div id="toolbar">
   <div style="clear: left;"></div>
-  <table class="toolbar_tbl" align="center">
-    <tr>
-      <td><div class="block_button" id="btnOpenData"></div></td> 
+  <table class="toolbar_tbl" align="left" >
+    <tr><td><div class="block_button" id="btnOpenData"></div></td></tr> 
+    <tr><td><div class="block_button" id="btnCreateW"></div></td></tr> 
+    <tr><td><div class="block_button" id="btnSpreg"></div></td></tr> 
+    <tr><td height="10px"></td></tr>
+    <tr><td><div class="block_button" id="btnAbout"></div></td></tr>
+      <!--
       <td><div class="block_button" id="btnAddLayer"></div></td> 
       <td><div class="block_button" id="btnSave"></div></td> 
       <td><div class="block_button" id="btnShowTable"></div></td> 
-      <td><div class="block_button" id="btnCreateW"></div></td> 
       <td><div class="block_button" id="btnWHistogram"></div></td> 
       <td><div class="block_button" id="btnNewMap"></div></td> 
       <td><div class="block_button" id="btnKDE"></div></td> 
       <td><div class="block_button" id="btnScatterPlot"></div></td> 
       <td><div class="block_button" id="btnHist"></div></td> 
       <td><div class="block_button" id="btnPCP"></div></td> 
-      <td><div class="block_button"></div></td> 
-      <td><div class="block_button"></div></td> 
-      <td><div class="block_button"></div></td> 
-      <td><div class="block_button"></div></td> 
-      <td><div class="block_button"></div></td> 
-      <td><div class="block_button"></div></td> 
-      <td><div class="block_button"></div></td> 
-      <td><div class="block_button"></div></td> 
       <td><div class="block_button" id="btnLISA"></div></td> 
-      <td><div class="block_button"  id="btnSpreg"></div></td> 
-      <td><div class="block_button" id="btnAbout"></div></td> 
-    </tr>
+      -->
   </table>
 </div>
+  </td>
+  <td>
 <div id="file_div"> 
   <div id="main_div" style="width: 80%;margin: 0 auto;">
     <div id="file_choose_div" style="width: 100%; margin: 0 auto;">
@@ -858,6 +855,9 @@ $('#btn_logout').click(function(){
   </div>
 </div>
 </div>
+
+  </td></tr>
+</table>
 
 <style>
   .ui-widget-overlay { background: #eee repeat-x; opacity: .8;}
