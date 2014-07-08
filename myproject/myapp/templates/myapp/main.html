@@ -13,15 +13,9 @@ path {
   //stroke-linejoin: round;
 }
 .map_div {
-  width: 800px;
-  height: 400px;
-  pointer-events: none;
+  width: 780;
+  height: 360px;
   fill: none;
-  stroke: #fff;
-  stroke-width: .5px;
-  stroke-linejoin: round;
-  //border: 1px solid #ccc;
-  border-radius: 5px;
   margin: 0 auto;
 }
 .selected {
@@ -108,11 +102,10 @@ body {
 }
 #preview {
   width: 90%;
-  height: 450px;
+  height: 500px;
   margin-top: 20px;
   padding-top: 20px;
   margin:0 auto;
-  //border: 1px solid red;
   text-align: center;
 }
 #toolbar {
@@ -333,7 +326,7 @@ var mapCounter = 0;
 function CreateMapContainer(jsonFilePath) {
   mapCounter++;
   var containerID = 'map' + mapCounter;
-  $('#mapslider ul').append("<li><center>" + jsonFilePath + "<div id="+containerID+" class=map_div onclick='SelectMap(this)'></div></center></li>"); 
+  $('#mapslider ul').append("<li><center>" + jsonFilePath + "<div id="+containerID+" class='map_div' onclick='SelectMap(this)'></div></center></li>"); 
   $('#mapnav').append("<label for=slides_"+mapCounter+"></label>");
   $('.arrows').append("<label for=slides_"+mapCounter+"></label>");
   $('#mapslider').removeClass('csslider').addClass('csslider');
@@ -363,7 +356,7 @@ function SaveMapThumbnail(canvas) {
 }
 
 var w = 600;
-var h = 400;
+var h = 379;
 function ShowJsonMap(jsonFilePath, content, onSuccess) {
   var containerID = CreateMapContainer(jsonFilePath);
   //Load GeoJSON data
@@ -772,7 +765,7 @@ $('#btn_logout').click(function(){
 });
 </script>
 <table>
-  <tr><td valign="top">
+  <tr><td valign="top" width="100px">
 <div id="toolbar">
   <div style="clear: left;"></div>
   <table class="toolbar_tbl" align="left" >
