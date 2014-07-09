@@ -94,6 +94,7 @@ def upload(request):
         fileurls = []
         layer_uuid = ""
         print filelist
+        
         # save all files
         for docfile in filelist:
             filename = str(docfile)
@@ -107,21 +108,31 @@ def upload(request):
 
         # move files to sqlite db
         if len(filenames) == 0:
-            return HttpResponse("ERROR")
+            return HttpResponse(RSP_FAIL, content_type="application/json")
         elif len(filenames) == 1:
-            pass 
+            # one time json, zip file
+            name = filenames[0]
+            if name.endswith(".json"):
+                pass
+            elif name.endswith(".zip"):
+                pass
+            
         elif len(filenames) == 3:
             # one time shp/dbf/shx  
             shp_name = ""
             dbf_name = ""
             shx_name = ""
             for name in filenames:
-                if name.endswith(".shp"): shp_name = name
-                elif name.endswith(".dbf"): dbf_name = name
-                elif name.endswith(".shx"): shx_name = name
+                if name.endswith(".shp"): 
+                    shp_name = name
+                elif name.endswith(".dbf"): 
+                    dbf_name = name
+                elif name.endswith(".shx"): 
+                    shx_name = name
             if not shp_name and not dbf_name and not shx_name:
                 return HttpResponse("ERROR")
-            if layer_uuid == "": layer_uuid = md5(userid+shp_name).hexdigest()
+            if layer_uuid == "": 
+                layer_uuid = md5(userid+shp_name).hexdigest()
             shp_path = settings.PROJECT_ROOT + fileurls[0][:-3] + "shp"
             # save meta data to Geodata table
             meta_data = GeoDB.GetMetaData(layer_uuid,"ESRI shapefile",shp_path)
