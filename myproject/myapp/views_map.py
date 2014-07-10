@@ -102,20 +102,25 @@ def upload(request):
             shpuuid =  md5(userid+filename).hexdigest()
             if filename[-4:] in [".shp",".json",".geojson"]:
                 layer_uuid = shpuuid
-            newdoc = Document(uuid = shpuuid, userid = userid,filename=filename, docfile = docfile)
+            newdoc = Document(uuid = shpuuid, userid = userid,\
+                              filename=filename, docfile = docfile)
             newdoc.save()
             fileurls.append(newdoc.docfile.url)
 
         # move files to sqlite db
+        proc = False
+        table_name = None
         if len(filenames) == 0:
             return HttpResponse(RSP_FAIL, content_type="application/json")
         elif len(filenames) == 1:
             # one time json, zip file
             name = filenames[0]
-            if name.endswith(".json"):
-                pass
-            elif name.endswith(".zip"):
-                pass
+            if not name.endswith("json"):
+                return HttpResponse(RSP_FAIL, content_type="application/json")
+            driver = "GeoJSON"
+            shp_name = name
+            shp_path = settings.PROJECT_ROOT + fileurls[0]
+            proc = True
             
         elif len(filenames) == 3:
             # one time shp/dbf/shx  
@@ -130,28 +135,38 @@ def upload(request):
                 elif name.endswith(".shx"): 
                     shx_name = name
             if not shp_name and not dbf_name and not shx_name:
-                return HttpResponse("ERROR")
-            if layer_uuid == "": 
-                layer_uuid = md5(userid+shp_name).hexdigest()
+                return HttpResponse(RSP_FAIL, content_type="application/json")
+            driver = "ESRI shapefile"
             shp_path = settings.PROJECT_ROOT + fileurls[0][:-3] + "shp"
+            proc = True
+        
+        if proc:
+            if layer_uuid == "": 
+                layer_uuid = md5(userid + shp_name).hexdigest()
             # save meta data to Geodata table
-            meta_data = GeoDB.GetMetaData(layer_uuid,"ESRI shapefile",shp_path)
-            new_geodata = Geodata(uuid=layer_uuid, userid=userid, origfilename=shp_name, n=meta_data['n'], geotype=str(meta_data['geom_type']), bbox=str(meta_data['bbox']), fields=json.dumps(meta_data['fields']))
+            meta_data = GeoDB.GetMetaData(shp_path, table_name, driver)
+            new_geodata = Geodata(uuid=layer_uuid, userid=userid, 
+                                  origfilename=shp_name, n=meta_data['n'], 
+                                  geotype=str(meta_data['geom_type']), 
+                                  bbox=str(meta_data['bbox']), 
+                                  fields=json.dumps(meta_data['fields']))
             new_geodata.save()
             # export to spatial database in background
             # note: this background process also compute min_threshold
             # and max_thresdhold
             from django.db import connection 
             connection.close()
-            mp.Process(target=GeoDB.ExportToDB, args=(shp_path,layer_uuid)).start()
+            mp.Process(target=GeoDB.ExportToDB, 
+                       args=(shp_path,layer_uuid)).start()
             print "uploaded done."
-            return HttpResponse('{"layer_uuid":"%s"}'%layer_uuid, content_type="application/json")
+            return HttpResponse('{"layer_uuid":"%s"}'%layer_uuid, 
+                                content_type="application/json")
 
-        return HttpResponse("OK")
+        return HttpResponse(RSP_FAIL, content_type="application/json")
 
     elif request.method == 'GET':
         # Get data from dropbox or other links
-        return HttpResponse("OK")
+        return HttpResponse(RSP_FAIL, content_type="application/json")
 
 """
 Check if field exists in Django DB

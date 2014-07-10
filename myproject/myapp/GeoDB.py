@@ -24,10 +24,12 @@ def GetDS():
             db_uname = db_set['USER']
             db_upwd = db_set['PASSWORD']
             db_name = db_set['NAME']
-            conn_str = "PG: host=%s dbname=%s user=%s password=%s" % (db_host, db_name, db_uname, db_upwd)
+            conn_str = "PG: host=%s dbname=%s user=%s password=%s" \
+                     % (db_host, db_name, db_uname, db_upwd)
             DS = ogr.Open(conn_str) 
         else:
-            GEODB_PATH = os.path.realpath(os.path.dirname(__file__)) + '/../database/geodata.sqlite'
+            GEODB_PATH = os.path.realpath(os.path.dirname(__file__)) \
+                       + '/../database/geodata.sqlite'
             SQLITE_DRIVER = ogr.GetDriverByName('SQLite')
             DS = SQLITE_DRIVER.Open(GEODB_PATH, 0) # readonly
         print 'OK to GeoDB'
@@ -160,12 +162,9 @@ def GetDataSource(drivername, filepath):
     ds = driver.Open(filepath, 0)
     return ds
     
-def GetMetaData(layer_uuid, drivername=None, filepath=None):
-    ds = GetDS()
-    table_name = TBL_PREFIX + layer_uuid
-    lyr = None
-    ds = GetDataSource(drivername,filepath) if drivername and filepath else ds 
-    lyr = ds.GetLayer(0) if drivername=="ESRI shapefile" else ds.GetLayer(table_name)
+def GetMetaData(filepath, table_name, drivername=None):
+    ds = GetDataSource(drivername, filepath) 
+    lyr = ds.GetLayer(0) if table_name == None else ds.GetLayer(table_name)
     if lyr is None:
         return None
     meta_data = dict()

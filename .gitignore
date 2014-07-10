@@ -17,3 +17,5 @@ myproject/database/geodata.sqlite
 *.DS_Store
 
 myproject/settings.py
+
+*.prj
