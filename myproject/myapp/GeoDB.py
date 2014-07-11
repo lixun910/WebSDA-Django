@@ -78,7 +78,7 @@ def ExportToDB(shp_path, layer_uuid):
 def ExportToESRIShape(json_path):
     # will be called in subprocess
     import subprocess
-    shp_path = json_path + ".shp"
+    shp_path = json_path[:-3] + "shp"
     script = 'ogr2ogr -f "ESRI Shapefile" %s %s' %(shp_path,json_path)
     rtn = subprocess.call( script, shell=True)
     if rtn != 0:
@@ -88,7 +88,10 @@ def ExportToESRIShape(json_path):
 def ExportToJSON(shp_path):
     # will be called in subprocess
     import subprocess
-    json_path = shp_path[:-3] + "json"
+    if shp_path.endswith("json"):
+        json_path = shp_path[:-3] + "simp.json"
+    else:
+        json_path = shp_path[:-3] + "json"
     script = 'ogr2ogr -select "" -f "GeoJSON" %s %s' %(json_path,shp_path)
     rtn = subprocess.call( script, shell=True)
     
@@ -123,9 +126,25 @@ def AddUniqueIDField(layer_uuid, field_name):
     # add field first
     try:
         sql = "alter table %s add column %s integer" % (table_name, field_name)
+        print sql
         tmp_layer = ds.ExecuteSQL(str(sql))
         sql = "update %s set %s = ogc_fid" % (table_name, field_name)
+        print sql
         tmp_layer = ds.ExecuteSQL(str(sql))
+        
+        
+        from myproject.myapp.models import Geodata
+        geodata = Geodata.objects.get(uuid = layer_uuid)
+        if not geodata:
+            return False
+        #fields = json.loads(geodata.fields)
+        fields = eval(geodata.fields)
+    
+        # save new field to django db 
+        fields[str(field_name)] = "Integer"
+        geodata.fields = fields
+        geodata.save()
+        
         return True
     except Exception, e:
         print "AddUniqueIDField() error"

@@ -22,6 +22,7 @@ urlpatterns += patterns('myproject.myapp.views_map',
     url(r'^draw/$', TemplateView.as_view(template_name='myapp/draw.html')),
 )    
 urlpatterns += patterns('myproject.myapp.views_weights',
+    url(r'^add_UID/$', 'add_Unique_ID', name='add unique ID'),
     url(r'^check_ID/$', 'check_ID', name='check if field unique'),
     url(r'^create_weights/$', 'create_weights', name=''),
     url(r'^check_w/$', 'check_w', name=''),

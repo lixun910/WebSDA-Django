@@ -254,7 +254,8 @@ function loadFieldNames() {
       field_names.sort();
       // in weights creation dialog
       $('#sel-w-id').find('option').remove().end();
-      $('#sel-w-id').append($('<option>', {value: "ogc_fid"}).text("[use sequence as default]"));
+      $('#sel-w-id').append($('<option>', {value: ""}).text(""));
+      $('#sel-w-id').append($('<option>', {value: "0"}).text("[Add Unique ID]"));
       $.each(field_names, function(i, field_name) {
         if ( fields[field_name] != "String" ) {
           $('#sel-w-id').append($('<option>', {value: field_name}).text(field_name));
@@ -894,7 +895,7 @@ $('#btn_logout').click(function(){
   <p style="text-align: left">
   <button id="btn_open_model">Open Model</button>
   <button id="btn_save_model">Save Model</button>
-  <button id="sec">Reset Model</button>
+  <button id="btn_reset_model">Reset Model</button>
   <button id="btn_preference">Preference</button>
   <button id="btn_run">Run</button>
   <button id="btn_result">Show Result</button>
@@ -1225,6 +1226,11 @@ $('#btn-save-predy').click(function() {
   </form>
 </div>
 
+<div id="dlg-add-uniqid" title="Add Unique ID">
+    <label for="name">Input an unique ID name:</label>
+    <input type="text" id="uniqid_name" class="text ui-widget-content ui-corner-all">
+</div>
+
 <div id="dlg-save-model" title="Save Spreg Model">
     <label for="name">Input a model name:</label>
     <input type="text" id="model_name" class="text ui-widget-content ui-corner-all">
@@ -1237,6 +1243,16 @@ $('#btn-save-predy').click(function() {
 </div>
 
 <script>
+var restSpreg = function() {
+  $.each($('#x_box li, #y_box li, #ye_box li, #inst_box li, #r_box li, #t_box li'), function(i, v) { $(v).dblclick();});
+  $('input[name="model_type"][value="0"]').prop('checked', true)
+  $('input[name="method"]').prop('disabled', true)
+  $('input[name="method"][value="0"]').prop('checked', true).prop('disabled', false);
+  $('input:checkbox[name=stderror]').each(function(i,obj){
+    $(obj).prop('checked', false);
+  });
+};
+
 $(function() {
   $( "#y_catalog" ).accordion();
   $( "#x_catalog" ).accordion();
@@ -1327,12 +1343,11 @@ $(function() {
         url: "../save_spreg_p/",
           type: "post",
           data: $("#form-pref").serialize(),
-          success: function( data ) {
-          }
-          });
-        },
-        }
-      });
+          success: function( data ) {}
+        });
+      },
+    }
+  });
   $( "#dialog-spreg-result" ).dialog({
     height: 500,
     width: 800,
@@ -1363,6 +1378,42 @@ $(function() {
     modal: true,
   });
     
+  $( "#dlg-add-uniqid" ).dialog({
+    dialogClass: "dialogWithDropShadow",
+    width: 400,
+    height: 200,
+    autoOpen: false,
+    modal: true,
+    buttons: {
+      "Add": function() {
+        var that = $(this);
+        var layer_uuid = localStorage.getItem('current_layer');
+        if ( layer_uuid ) {
+          var name = $('#uniqid_name').val(),
+              conti = true;
+          $.each($('#sel-w-id').children(), function(i,j) { 
+            if( name == $(j).text()) {
+              alert("Input unique ID field already exists.");
+              conti = false;
+              return;
+            }
+          })
+          if ( conti == true ) {
+            params = { 'layer_uuid': layer_uuid, 'name': name, csrfmiddlewaretoken: '{{ csrf_token }}'};
+            $.post("../add_UID/", params, function() {
+            }).done(function(data) { 
+              console.log("add_uid", data); 
+              if (data["success"] == 1) {
+                loadFieldNames();
+                that.dialog( "close" );
+              }
+            });
+          }
+        }
+      },
+      Cancel: function() {$( this ).dialog( "close" );},
+    }
+  });
   $( "#dlg-save-model" ).dialog({
     dialogClass: "dialogWithDropShadow",
     width: 400,
@@ -1421,6 +1472,7 @@ $(function() {
               if ( "success" in data ) {
                 console.log("load spreg model failed.");
               } else {
+                resetSpreg();
                 $('input[name="model_type"][value='+data['type']+']').prop('checked', true);
                 $('input[name="method"][value='+data['method']+']').prop('checked', true);
                 var error = data['stderror'];
@@ -1472,92 +1524,93 @@ $(function() {
     $('#dlg-save-model').dialog('open');
   });
   
-  $( "#sec" ).button({icons: {primary: "ui-icon-)circle-close"}});
+  $( "#btn_reset_model" ).button({icons: {primary: "ui-icon-)circle-close"}})
+  .click(function() { restSpreg(); });
   
-  $( "#btn_preference" ).button({icons:{primary: "ui-icon-gear",}
-  }).click(function(){ $('#dialog-preference').dialog('open');});
+  $( "#btn_preference" ).button({icons:{primary: "ui-icon-gear",}})
+  .click(function(){ $('#dialog-preference').dialog('open');});
   
-  $( "#btn_result" ).button({icons: {primary: "ui-icon-document",}
-  }).click(function(){
+  $( "#btn_result" ).button({icons: {primary: "ui-icon-document",}})
+  .click(function(){
     $('#dialog-spreg-result').dialog('open').draggable('disable');
   }).hide();
     
-  $( "#btn_create_w" ).button({icons: {primary: "ui-icon-plus",}
-  }).click(function(){
-  $('#dialog-weights').dialog('open');
+  $( "#btn_create_w" ).button({icons: {primary: "ui-icon-plus",}})
+  .click(function(){
+    $('#dialog-weights').dialog('open');
   });
     
-  $( "#btn_run" ).button({icons: {primary: "ui-icon-circle-triangle-e",},
-  }).click(function() {
-  var layer_uuid = localStorage.getItem('current_layer');
-  if (  layer_uuid == undefined ) {
-    console.log("Error: layer_uuid is not defined.");
-    return;
-  }
-  var w_list = $.GetValsFromObjs($('#sel-model-w-files :selected'));
-  var wk_list = $.GetValsFromObjs($('#sel-kernel-w-files :selected'));
-  var model_type = $('input:radio[name=model_type]:checked').val();
-  var method = $('input:radio[name=method]:checked').val();
-  // y, x, w, 
-  var x = $.GetTextsFromObjs($('#x_box li'));
-  var y = $.GetTextsFromObjs($('#y_box li'))[0];
-  var ye = $.GetTextsFromObjs($('#ye_box li'));
-  var h = $.GetTextsFromObjs($('#inst_box li'));
-  var r = $.GetTextsFromObjs($('#r_box li'));
-  var t = $.GetTextsFromObjs($('#t_box li'));
-  // check error flag 
-  var error = [0,0,0];
-  var conti = true;
-  $('input:checkbox[name=stderror]').each(function(i,obj){
-    if (obj.checked){ 
-    error[i] = 1;
-      if ( i==1 && w_list.length == 0 ) {
-        alert("Please select weights file for model.");
-        conti = false;
-        return;
-      }
-      if ( i==1 && wk_list.length == 0 ) {
-        alert("Please select kernel weights file for model.");
-        conti = false;
-        return;
-      }
+  $( "#btn_run" ).button({icons: {primary: "ui-icon-circle-triangle-e",}})
+  .click(function() {
+    var layer_uuid = localStorage.getItem('current_layer');
+    if (  layer_uuid == undefined ) {
+      console.log("Error: layer_uuid is not defined.");
+      return;
     }
-  });
-  if ( conti == false) return;
-  // run model
-  params = { 'layer_uuid': layer_uuid, 'w': w_list, 'wk': wk_list, 'type': model_type, 'method': method, 'error': error, 'x': x, 'y': y, 'ye': ye, "h": h, "r": r, "t": t, csrfmiddlewaretoken: '{{ csrf_token }}'};
-  $.post("../spatial_regression/", params, function() {
-    $('#btn_result').hide();
-  }).done(function(data) {
-    try {
-      data = JSON.parse(data);
-      if ( data['success'] == 1 ) {
-        $('#btn_result').show();
-        if ( data['report'] ) {
-          var predy = "", summary = "", cnt= 0;
-          $.each(data['report'], function(id, result) { cnt+=1;});
-          cnt = cnt.toString();
-          $.each(data['report'], function(id, result) {
-            var idx = parseInt(id) + 1
-            summary += "Report " + idx + "/" + cnt + "\n\n"+result['summary'] + "\n\n";
-            predy += "<b>Report " + idx + "/" + cnt +"</b><br/><br/>";
-            predy += "<table border=1 width=100% id='predy"+id+"'><tr><th>Predicted Values</th><th>Residuals</th></tr>";
-            var n = result['predy'][0].length;
-            for ( var i=0; i< n; i++ ) {
-              predy += "<tr><td>" + result['predy'][0][i] + "</td><td>" + result['residuals'][0][i] + "</td></tr>";
-            }
-            predy += "</table><br/><br/>";
-          });
-          $('#txt-spreg-predy').html(predy);
-          $('#txt-spreg-summary').text(summary);
+    var w_list = $.GetValsFromObjs($('#sel-model-w-files :selected'));
+    var wk_list = $.GetValsFromObjs($('#sel-kernel-w-files :selected'));
+    var model_type = $('input:radio[name=model_type]:checked').val();
+    var method = $('input:radio[name=method]:checked').val();
+    // y, x, w, 
+    var x = $.GetTextsFromObjs($('#x_box li'));
+    var y = $.GetTextsFromObjs($('#y_box li'))[0];
+    var ye = $.GetTextsFromObjs($('#ye_box li'));
+    var h = $.GetTextsFromObjs($('#inst_box li'));
+    var r = $.GetTextsFromObjs($('#r_box li'));
+    var t = $.GetTextsFromObjs($('#t_box li'));
+    // check error flag 
+    var error = [0,0,0];
+    var conti = true;
+    $('input:checkbox[name=stderror]').each(function(i,obj){
+      if (obj.checked){ 
+      error[i] = 1;
+        if ( i==1 && w_list.length == 0 ) {
+          alert("Please select weights file for model.");
+          conti = false;
+          return;
         }
-        $('#btn_result').popupDiv('#divPop','Click this button to see result.');
+        if ( i==1 && wk_list.length == 0 ) {
+          alert("Please select kernel weights file for model.");
+          conti = false;
+          return;
+        }
       }
-    } catch (e) {console.log(e);}
-  })
-  .fail(function(data){ alert("Spatial regression failed.");});
+    });
+    if ( conti == false) return;
+    // run model
+    params = { 'layer_uuid': layer_uuid, 'w': w_list, 'wk': wk_list, 'type': model_type, 'method': method, 'error': error, 'x': x, 'y': y, 'ye': ye, "h": h, "r": r, "t": t, csrfmiddlewaretoken: '{{ csrf_token }}'};
+    $.post("../spatial_regression/", params, function() {
+      $('#btn_result').hide();
+    }).done(function(data) {
+      try {
+        data = JSON.parse(data);
+        if ( data['success'] == 1 ) {
+          $('#btn_result').show();
+          if ( data['report'] ) {
+            var predy = "", summary = "", cnt= 0;
+            $.each(data['report'], function(id, result) { cnt+=1;});
+            cnt = cnt.toString();
+            $.each(data['report'], function(id, result) {
+              var idx = parseInt(id) + 1
+              summary += "Report " + idx + "/" + cnt + "\n\n"+result['summary'] + "\n\n";
+              predy += "<b>Report " + idx + "/" + cnt +"</b><br/><br/>";
+              predy += "<table border=1 width=100% id='predy"+id+"'><tr><th>Predicted Values</th><th>Residuals</th></tr>";
+              var n = result['predy'][0].length;
+              for ( var i=0; i< n; i++ ) {
+                predy += "<tr><td>" + result['predy'][0][i] + "</td><td>" + result['residuals'][0][i] + "</td></tr>";
+              }
+              predy += "</table><br/><br/>";
+            });
+            $('#txt-spreg-predy').html(predy);
+            $('#txt-spreg-summary').text(summary);
+          }
+          $('#btn_result').popupDiv('#divPop','Click this button to see result.');
+        }
+      } catch (e) {console.log(e);}
+    })
+    .fail(function(data){ alert("Spatial regression failed.");});
+    });
   });
-});
 </script>
 
 <div id="dialog-weights"  title="Weights Creation Dialog">
@@ -1594,22 +1647,21 @@ $(function() {
     }
     </style>
   <table>
-  <tr><td><li>Please input a Weights name</li></td><td>
-  <input type="text" id="txt-w-name">
-    </td></tr>
-      <tr><td><li>Select an ID variable for weights file:</li></td>
-    <td valign="center">
-    <select id='sel-w-id'>
-    <option value="POLYID" selected>POLYID</option>
-      <option value="X">X</option>
-        <option value="Y">Y</option>
-        </select>
-        <img id="img-id-chk" src="{{url_prefix}}/media/img/checkmark.png">
-      <img id="img-id-nochk" src="{{url_prefix}}/media/img/uncheckmark.gif">
-    <img id="img-id-spin" src="{{url_prefix}}/media/img/loading_small.gif"></td>
+    <tr>
+      <td><li>Please input a Weights name</li></td>
+      <td><input type="text" id="txt-w-name"></td>
     </tr>
-    </table>
-    <br/>
+    <tr>
+      <td><li>Select an ID variable for weights file:</li></td>
+      <td valign="center">
+      <select id='sel-w-id'></select>
+      <img id="img-id-chk" src="{{url_prefix}}/media/img/checkmark.png">
+      <img id="img-id-nochk" src="{{url_prefix}}/media/img/uncheckmark.gif">
+      <img id="img-id-spin" src="{{url_prefix}}/media/img/loading_small.gif">
+      </td>
+    </tr>
+  </table>
+  <br/>
   <br/>
   <div id="tabs-dlg-weights">
   <ul>
@@ -1618,24 +1670,24 @@ $(function() {
       <li><a href="#tabs-3">Adaptive Kernel</a></li>
       </ul>
       <div id="tabs-1">
-    <form id="cont-form">
-    <table>
-      <tr>
-      <td>Contiguity Type</td>
-        <td>
-          <select id="sel-cont-type">
-          <option value="0" selected>Rook</option>
-            <option value="1">Queen</option>
-              </select>
-              </td>
-            </tr>
+        <form id="cont-form">
+        <table>
           <tr>
-        <td>Order of Contiguity</td>
-        <td><input id="spn-cont-order" value=1></td>
+            <td>Contiguity Type</td>
+            <td>
+              <select id="sel-cont-type">
+                <option value="0" selected>Rook</option>
+                <option value="1">Queen</option>
+              </select>
+            </td>
           </tr>
           <tr>
-        <td>Include Lower Orders</td>
-        <td><input type="checkbox" id="cbx-cont-ilo"></td>
+            <td>Order of Contiguity</td>
+            <td><input id="spn-cont-order" value=1></td>
+          </tr>
+          <tr>
+            <td>Include Lower Orders</td>
+            <td><input type="checkbox" id="cbx-cont-ilo"></td>
           </tr>
           </table>
         </form>
@@ -1691,7 +1743,7 @@ $(function() {
         </div>
       </div>
     <div class="dlg-loading"></div>
-  <script>
+<script>
   $('.dlg-loading').hide();
   $('#dist-slider').slider({
     min: 0,
@@ -1704,149 +1756,150 @@ $(function() {
     $('#tabs-dlg-weights').tabs();
     
     var timeoutRef;
-function checkWname() {
-  if (!timeoutRef) {
-  return;
+  function checkWname() {
+    if (!timeoutRef) {
+      return;
     }
-      timeoutRef = null;
+    timeoutRef = null;
     var layer_uuid = localStorage['current_layer'],
-    w_name = $("#txt-w-name").val();
+        w_name = $("#txt-w-name").val();
     $('#txt-w-name').next().remove();
-      if ( layer_uuid && w_name ) { 
-    $(html_load_img).insertAfter("#txt-w-name");
-    $.get('../check_w/', { 'w_name': w_name, 'layer_uuid':layer_uuid,}, function(){
-      $('#txt-w-name').next().remove();
+    if ( layer_uuid && w_name ) { 
+      $(html_load_img).insertAfter("#txt-w-name");
+      $.get('../check_w/', { 'w_name': w_name, 'layer_uuid':layer_uuid,}, function(){
+        $('#txt-w-name').next().remove();
       }).done( function( data ) {
         $('#txt-w-name').next().remove();
-      if ( data == "1" ) {
-        $('<font color=red>duplicated name</span>').insertAfter($("#txt-w-name"));
+        if ( data == "1" ) {
+          $('<font color=red>duplicated name</span>').insertAfter($("#txt-w-name"));
         } else {
           $(html_check_img).insertAfter("#txt-w-name");
         }
-          })
-        .always( function() {});
-      }
-      }
-    $('#txt-w-name').keypress(function() {
-  var el = this;
-  if ( timeoutRef ) clearTimeout(timeoutRef);
+      }).always( function() {});
+    }
+  }
+  $('#txt-w-name').keypress(function() {
+    var el = this;
+    if ( timeoutRef ) clearTimeout(timeoutRef);
     timeoutRef = setTimeout(function() {checkWname.call(el);}, 1000);
     $('#txt-w-name').blur(function(){ checkWname.call(el); });
-    });
+  });
     
   $('#sel-w-id').prop("selectedIndex", -1);
-$('#sel-w-id').change(function() {
-  var layer_uuid = localStorage['current_layer'];
-  var id_name = $('#sel-w-id').val();
+  $('#sel-w-id').change(function() {
+    var layer_uuid = localStorage['current_layer'];
+    var id_name = $('#sel-w-id').val();
     $("#img-id-chk, #img-id-nochk, #img-id-spin").hide();          
-    if ( id_name && layer_uuid ) {
-    $("#img-id-spin").show();          
-    $.get('../check_ID/',{'layer_uuid':layer_uuid, 'id_name':id_name},function(){
+    if ( id_name == "" ) {
+      return;
+    } else if ( id_name == "0" ) {
+      $('#dlg-add-uniqid').dialog('open');
+      return;
+    } else if ( id_name && layer_uuid ) {
       $("#img-id-spin").show();          
-    })
-      .done(function(data){
-    if ( data == "1" ) {
-    $("#img-id-chk").show();          
-      $("#img-id-nochk, #img-id-spin").hide();          
+      $.get('../check_ID/',{'layer_uuid':layer_uuid, 'id_name':id_name},function(){ $("#img-id-spin").show(); }).done(function(data) {
+        if ( data == "1" ) {
+          $("#img-id-chk").show();          
+          $("#img-id-nochk, #img-id-spin").hide();          
         } else {
-        $("#img-id-nochk").show();          
-      $("#img-id-chk, #img-id-spin").hide();          
+          $("#img-id-nochk").show();          
+          $("#img-id-chk, #img-id-spin").hide();          
         }
-        });
-      }
-    });
-    $( "#dialog-weights" ).dialog({
-  height: 380,
-  width: 480,
+      });
+    }
+  });
+  $( "#dialog-weights" ).dialog({
+    height: 380,
+    width: 480,
     autoOpen: false,
     modal: true,
     dialogClass: "dialogWithDropShadow",
     buttons: {
-    "Create": {
-    text: "Create",
-      id: "btn-create-w",
+      "Create": {
+        text: "Create",
+        id: "btn-create-w",
         click: function() {
-        var layer_uuid = localStorage['current_layer'];
-        if ( layer_uuid == undefined ) return;
+          var layer_uuid = localStorage['current_layer'];
+          if ( layer_uuid == undefined ) return;
           var w_name = $('#txt-w-name').val(),
           w_id = $('#sel-w-id').find(":selected").val(),
           active = $('#tabs-dlg-weights').tabs("option","active");
-            if ( w_name.length == 0 ) {
+          if ( w_name.length == 0 ) {
             alert("Error: Weights name can't be empty.");
-          return;
-            }
-            if ( w_id.length == 0 || $('#img-id-nochk').is(":visible") ) {
-          alert("Error: An unique ID for weights creation is required.");
-          return;
-            }
-            var post_param = {
-          'layer_uuid': layer_uuid,
-          'w_id': w_id, 'w_name': w_name, 
+            return;
+          }
+          if ( w_id.length == 0 || $('#img-id-nochk').is(":visible") ) {
+            alert("Error: An unique ID for weights creation is required.");
+            return;
+          }
+          var post_param = {
+            'layer_uuid': layer_uuid,
+            'w_id': w_id, 'w_name': w_name, 
             csrfmiddlewaretoken: '{{ csrf_token }}',
-            };
+          };
             
           if ( active == 0 ) {
-var cont_type = $('#sel-cont-type').find(":selected").val(),
-  cont_order = $('#spn-cont-order').val(),
-    cont_ilo = $('#cbx-cont-ilo').prop("checked");
-      post_param['cont_type'] = cont_type;
-      post_param['cont_order'] = cont_order;
-    post_param['cont_ilo'] = cont_ilo;
+            var cont_type = $('#sel-cont-type').find(":selected").val(),
+                cont_order = $('#spn-cont-order').val(),
+                cont_ilo = $('#cbx-cont-ilo').prop("checked");
+                post_param['cont_type'] = cont_type;
+                post_param['cont_order'] = cont_order;
+                post_param['cont_ilo'] = cont_ilo;
     
-    } else if ( active == 1) {
-var dist_value = "",
-  dist_metric = $('#sel-dist-metr').val(),
-    dist_method =$('input:radio[name=rdo-dist]:checked').attr("id");
+          } else if ( active == 1) {
+            var dist_value = "",
+                dist_metric = $('#sel-dist-metr').val(),
+                dist_method =$('input:radio[name=rdo-dist]:checked').attr("id");
       
-      if ( dist_method == 0 ) {
-dist_value = $('#spn-dist-knn').val();
-  } else if ( dist_method == 1 ) {
-    dist_value = $('#txt-dist-thr').val();
-  } else if ( dist_method == 2 ) {
-    dist_value = $('#txt-dist-thr').val() + "," + $('#spn-pow-idst').val();
-  } else {
-    alert("Please select a distance method.");
-  return;
-    }
+            if ( dist_method == 0 ) {
+              dist_value = $('#spn-dist-knn').val();
+            } else if ( dist_method == 1 ) {
+              dist_value = $('#txt-dist-thr').val();
+            } else if ( dist_method == 2 ) {
+              dist_value = $('#txt-dist-thr').val() + "," + $('#spn-pow-idst').val();
+            } else {
+              alert("Please select a distance method.");
+              return;
+            }
     
-  post_param['dist_metric'] = dist_metric;
-post_param['dist_method'] = dist_method;
-  post_param['dist_value'] = dist_value;
+            post_param['dist_metric'] = dist_metric;
+            post_param['dist_method'] = dist_method;
+            post_param['dist_value'] = dist_value;
   
-  } else if ( active == 2) {
-post_param['kernel_type'] = $("#sel-kel-type").val(); 
-  post_param['kernel_nn'] = $("#txt-kel-nn").val();
-    }
+          } else if ( active == 2) {
+            post_param['kernel_type'] = $("#sel-kel-type").val(); 
+            post_param['kernel_nn'] = $("#txt-kel-nn").val();
+          }
     
-  // submit request
-$("#btn-create-w").attr("disabled",true).fadeTo(0, 0.5);
-  $(html_load_img).insertBefore("#btn-create-w");
-  post_param['w_type'] = active;
-  $.post("../create_weights/", post_param, function(){})
-  .done(function( data ) {
-  data = JSON.parse(data);
-  if ( data["success"] == 1 ) {
-    $('#txt-w-name').val("").next().remove();
-    $('#sel-w-id').next().remove();
-      loadWnames();
-      alert("Create weights done.");
-      return;
-      }
-      alert("Create weights failed.");
-    })
-    .fail(function() { alert("Create weights failed."); })
-  .always(function(){
-  $("#btn-create-w").attr("disabled",false)
-  .fadeTo(0, 1)
-    .prev().remove();
-      });
-      }
-  },
-"Close": function() {
-$( this ).dialog( "close" );
-},
-  }
-});
+          // submit request
+          $("#btn-create-w").attr("disabled",true).fadeTo(0, 0.5);
+          $(html_load_img).insertBefore("#btn-create-w");
+          post_param['w_type'] = active;
+          $.post("../create_weights/", post_param, function(){})
+            .done(function( data ) {
+              data = JSON.parse(data);
+              if ( data["success"] == 1 ) {
+                $('#txt-w-name').val("").next().remove();
+                $('#sel-w-id').next().remove();
+                loadWnames();
+                alert("Create weights done.");
+                return;
+              }
+              alert("Create weights failed.");
+            })
+            .fail(function() { alert("Create weights failed."); })
+            .always(function(){
+              $("#btn-create-w").attr("disabled",false)
+                .fadeTo(0, 1)
+                .prev().remove();
+            });
+          }
+        },
+        "Close": function() {
+        $( this ).dialog( "close" );
+      },
+    }
+  });
 </script>
 </div> 
 

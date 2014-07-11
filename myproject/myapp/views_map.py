@@ -33,10 +33,13 @@ def new_map(request):
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'GET': 
         layer_uuid = request.GET.get("layer_uuid","")
-        shp_url = get_file_url(userid, layer_uuid)
-        if shp_url:
-            shp_location, shp_name = shp_url
-            json_location = shp_location[:-3] + "json"
+        shp_url_obj = get_file_url(userid, layer_uuid)
+        if shp_url_obj:
+            shp_location, shp_name = shp_url_obj
+            if shp_location.endswit("json"):
+                json_location = shp_location[:-3] + "simp.json"
+            else:
+                json_location = shp_location[:-3] + "json"
             print json_location
             if not os.path.isfile(json_location):
                 return render_to_response(
@@ -60,7 +63,7 @@ def get_fields(request):
         if geodata:
             fields = str(geodata.fields)
             fields = fields.replace("'","\"")
-            print fields
+            print "get_fields", fields
             return HttpResponse(fields, content_type="application/json")
     return HttpResponse(RSP_FAIL, content_type="application/json")
 

@@ -49,7 +49,9 @@ def create_weights(request):
         #print request.POST
         file_url, shpfilename = get_file_url(userid, layer_uuid)
         file_url = settings.PROJECT_ROOT + file_url
-        shp_path = file_url+".shp" if file_url.endswith("json") else file_url
+        shp_path = file_url
+        if file_url.endswith("json"):
+            file_url = file_url[:-3] + "shp"
 
         # detect w_id is unique ID
         if w_id == "ogc_fid":
@@ -170,4 +172,18 @@ def check_ID(request):
             return HttpResponse("1")
         
     return HttpResponse("0")
+    
+def add_Unique_ID(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    
+    if request.method == 'POST': 
+        layer_uuid = request.POST.get('layer_uuid','')
+        field_name = request.POST.get('name', None)
+        
+        if GeoDB.AddUniqueIDField(layer_uuid, field_name):
+            return HttpResponse(RSP_OK, content_type="application/json")
+        
+    return HttpResponse(RSP_FAIL, content_type="application/json")
     
