@@ -320,6 +320,47 @@ function loadModelNames() {
     });
   }
 }
+function InitRemoveButtons() {
+  $('.map_div').mouseover(function(){
+    $(this).prev().show();
+  });
+  $('.map_div').mouseleave(function(){
+    $(this).prev().hide();
+  });
+  $('.remove_map').hide().mouseover(function(){ $(this).show(); })
+  .mouseleave(function(){ $(this).hide(); })
+  .click( function(){
+    var that = $(this);
+    $('<div></div>').appendTo('body')
+      .html('<br/><div>Are you sure you want to delete this map?</div>')
+      .dialog({
+        modal: true,
+        title: "Confirmation required",
+        buttons: {
+          Yes: function() {
+            console.log(that.attr("id"));
+            
+            var idx = $("#mapslider ul li").index(that.parent().parent())+1;
+            var next_idx = idx < mapCounter ? idx + 1 : idx - 1;
+            SelectMap($('label[for=slides_'+next_idx).get(0));
+            if ( idx >= mapCounter ) {
+              $('#map-arr label[for=slides_' + next_idx +']').click();
+            }
+            setTimeout( function() {
+              that.closest("li").remove();
+              $("label[for=slides_" + mapCounter).remove();
+              mapCounter--;
+            }, 100);
+            $(this).dialog("close");
+          },
+          No: function() {
+            $(this).dialog("close");
+          }
+        },
+        close: function( evt, ui) { $(this).remove(); }
+      });
+  });
+}
 function fillForms(is_new) {
   if ( localStorage["current_layer"] ) {
     $('#btnCreateW, #btnSpreg, #btnNewMap').css("opacity",1);
@@ -340,9 +381,9 @@ var data; // global for testing
 function SelectMap(obj) {
   var slider_id = $(obj).attr("for");
   if ( slider_id ) {
-    var map_id = slider_id.split("_")[1];
-    var containerID = 'map' + map_id;
-    var layer_id = $('#'+containerID).children(":first").attr("id");
+    var idx = slider_id.split("_")[1] - 1,
+        layer_id = $($('#mapslider ul li').get(idx)).children().children()
+                  .first().attr("id");
     localStorage.setItem("current_layer", layer_id);
     fillForms();
   }
@@ -357,7 +398,7 @@ var mapCounter = 0;
 function CreateMapContainer(jsonFilePath) {
   mapCounter++;
   var containerID = 'map' + mapCounter;
-  $('#mapslider ul').append("<li><center>" + jsonFilePath + "<div id="+containerID+" class='map_div' onclick='SelectMap(this)'></div></center></li>"); 
+  $('#mapslider ul').append("<li><center>" + jsonFilePath + "<div id="+containerID+" class='map_div'></div></center></li>"); 
   $('#mapnav').append("<label for=slides_"+mapCounter+"></label>");
   $('.arrows').append("<label for=slides_"+mapCounter+"></label>");
   $('#mapslider').removeClass('csslider').addClass('csslider');
@@ -372,6 +413,8 @@ function SaveMapThumbnail(canvas) {
   var layer_uuid = localStorage.getItem('current_layer');
   if ( layer_uuid != undefined ) {
     canvas.attr("id", layer_uuid);
+    $("<div class='remove_map' id='"+layer_uuid+"'></div>").insertBefore(canvas.parent());
+    InitRemoveButtons();
     var dataURL = canvas[0].toDataURL();
     $.ajax({
       type: "POST",
@@ -499,6 +542,7 @@ $(document).ready(function() {
     }
   });
  
+  InitRemoveButtons();
   $("#dlg-run").dialog({
     dialogClass: "dlg-run",
     width: 460,
@@ -506,35 +550,6 @@ $(document).ready(function() {
     autoOpen: false,
     modal: true,
     resizable: false,
-  });
-  $('.remove_map').hide().mouseover(function(){ $(this).show(); })
-  .mouseleave(function(){ $(this).hide(); })
-  .click( function(){
-    var that = $(this);
-    $('<div></div>').appendTo('body')
-      .html('<br/><div>Are you sure you want to delete this map?</div>')
-      .dialog({
-        modal: true,
-        title: "Confirmation required",
-        autoOpen: true,
-        width: 'auto',
-        buttons: {
-          Yes: function() {
-            console.log(that.attr("id"));
-            $(this).dialog("close");
-          },
-          No: function() {
-            $(this).dialog("close");
-          }
-        },
-        close: function( evt, ui) { $(this).remove(); }
-      });
-  });
-  $('.map_div').mouseover(function(){
-    $(this).prev().show();
-  });
-  $('.map_div').mouseleave(function(){
-    $(this).prev().hide();
   });
   // init current working layer if exists  
   {% if n == 0 %} 
@@ -1835,14 +1850,13 @@ $(function() {
   $('#dist-slider').slider({
     min: 0,
     max: 100,
-      slide: function( event, ui ) {
-      $('#txt-dist-thr').val(ui.value);
-      }
-        });
-      $('#spn-pow-idst, #spn-cont-order, #spn-dist-knn').spinner();
-    $('#tabs-dlg-weights').tabs();
+    slide: function( event, ui ) { $('#txt-dist-thr').val(ui.value); }
+  });
+  
+  $('#spn-pow-idst, #spn-cont-order, #spn-dist-knn').spinner();
+  $('#tabs-dlg-weights').tabs();
     
-    var timeoutRef;
+  var timeoutRef;
   function checkWname() {
     if (!timeoutRef) {
       return;
