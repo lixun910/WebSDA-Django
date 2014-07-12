@@ -55,12 +55,14 @@ def ExportToDB(shp_path, layer_uuid):
     # convert json file to shapefile for PySAL usage if needed
     if shp_path.endswith(".json") or shp_path.endswith(".geojson"):
         ExportToESRIShape(shp_path) 
-        
-    if shp_path.endswith(".shp"):
-        ExportToJSON(shp_path) 
+   
+    # create a geometry only json file for visualization     
+    ExportToJSON(shp_path) 
         
     # compute meta data for weights creation
     from pysal.weights.user import get_points_array_from_shapefile
+    # make sure using shp file in pysal
+    shp_path = shp_path[0:shp_path.rfind(".")] + ".shp"
     points = get_points_array_from_shapefile(shp_path)
     from scipy.spatial import cKDTree
     kd = cKDTree(points)
@@ -78,7 +80,7 @@ def ExportToDB(shp_path, layer_uuid):
 def ExportToESRIShape(json_path):
     # will be called in subprocess
     import subprocess
-    shp_path = json_path[:-3] + "shp"
+    shp_path = json_path[0:json_path.rfind(".")] + ".shp"
     script = 'ogr2ogr -f "ESRI Shapefile" %s %s' %(shp_path,json_path)
     rtn = subprocess.call( script, shell=True)
     if rtn != 0:
@@ -89,7 +91,7 @@ def ExportToJSON(shp_path):
     # will be called in subprocess
     import subprocess
     if shp_path.endswith("json"):
-        json_path = shp_path[:-3] + "simp.json"
+        json_path = shp_path[0:shp_path.rfind(".")] + ".simp.json"
     else:
         json_path = shp_path[:-3] + "json"
     script = 'ogr2ogr -select "" -f "GeoJSON" %s %s' %(json_path,shp_path)
