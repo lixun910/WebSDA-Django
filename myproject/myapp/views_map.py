@@ -154,21 +154,35 @@ def upload(request):
             shp_path = settings.MEDIA_ROOT + "/temp/" + shp_name
             while os.path.isfile(shp_path):
                 shp_path = shp_path[0:shp_path.rfind(".")] + "_1.json" 
-            print shp_path
             urllib.urlretrieve(json_url, shp_path)
-            # save to file information database
-            layer_uuid =  md5(userid + shp_name).hexdigest()
-            docfile = File(open(shp_path))
-            newdoc = Document(uuid= layer_uuid, userid= userid,filename=shp_name, docfile = docfile)
-            newdoc.save()
             driver = "GeoJSON"
             proc = True
+        elif shp_url and shx_url and dbf_url:
+            shp_name = shp_url.split("/")[-1]
+            shp_path = settings.MEDIA_ROOT + "/temp/" + shp_url.split("/")[-1]
+            dbf_path = settings.MEDIA_ROOT + "/temp/" + dbf_url.split("/")[-1]
+            shx_path = settings.MEDIA_ROOT + "/temp/" + shx_url.split("/")[-1]
+            while os.path.isfile(shp_path):
+                shp_path = shp_path[:-4] + "_1.shp" 
+                dbf_path = dbf_path[:-4] + "_1.dbf" 
+                shx_path = shx_path[:-4] + "_1.shx" 
+            urllib.urlretrieve(shp_url, shp_path)
+            urllib.urlretrieve(dbf_url, dbf_path)
+            urllib.urlretrieve(shx_url, shx_path)
+            driver = "ESRI shapefile"
+            proc = True
+        # save to file information database
+        layer_uuid =  md5(userid + shp_name).hexdigest()
+        docfile = File(open(shp_path))
+        newdoc = Document(uuid= layer_uuid, userid= userid,filename=shp_name, docfile = docfile)
+        newdoc.save()
     
     if proc:
         if layer_uuid == "": 
             layer_uuid = md5(userid + shp_name).hexdigest()
         # save meta data to Geodata table
         table_name = None
+        print shp_path
         meta_data = GeoDB.GetMetaData(shp_path, table_name, driver)
         print meta_data
         new_geodata = Geodata(uuid=layer_uuid, userid=userid, 
@@ -219,7 +233,6 @@ def upload_canvas(request):
     userid = request.session.get('userid', False)
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
-    print request.POST
     if request.method == 'POST': 
         layer_uuid = request.POST.get('layer_uuid',None)
         if layer_uuid:

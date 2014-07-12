@@ -12,6 +12,14 @@ path {
   stroke: #333;
   //stroke-linejoin: round;
 }
+.remove_map {
+  width: 20px;
+  height: 20px;
+  float: left;
+  margin-top: 20px;
+  background-image: url("{{url_prefix}}/media/img/uncheckmark.gif");
+  background-repeat:no-repeat;
+}
 .map_div {
   width: 780;
   height: 360px;
@@ -362,7 +370,7 @@ function CreateMapContainer(jsonFilePath) {
 
 function SaveMapThumbnail(canvas) {
   var layer_uuid = localStorage.getItem('current_layer');
-  if (  layer_uuid != undefined ) {
+  if ( layer_uuid != undefined ) {
     canvas.attr("id", layer_uuid);
     var dataURL = canvas[0].toDataURL();
     $.ajax({
@@ -490,7 +498,44 @@ $(document).ready(function() {
       OK: function() {$( this ).dialog( "close" );},
     }
   });
-  
+ 
+  $("#dlg-run").dialog({
+    dialogClass: "dlg-run",
+    width: 460,
+    minHeight:100,
+    autoOpen: false,
+    modal: true,
+    resizable: false,
+  });
+  $('.remove_map').hide().mouseover(function(){ $(this).show(); })
+  .mouseleave(function(){ $(this).hide(); })
+  .click( function(){
+    var that = $(this);
+    $('<div></div>').appendTo('body')
+      .html('<br/><div>Are you sure you want to delete this map?</div>')
+      .dialog({
+        modal: true,
+        title: "Confirmation required",
+        autoOpen: true,
+        width: 'auto',
+        buttons: {
+          Yes: function() {
+            console.log(that.attr("id"));
+            $(this).dialog("close");
+          },
+          No: function() {
+            $(this).dialog("close");
+          }
+        },
+        close: function( evt, ui) { $(this).remove(); }
+      });
+  });
+  $('.map_div').mouseover(function(){
+    $(this).prev().show();
+  });
+  $('.map_div').mouseleave(function(){
+    $(this).prev().hide();
+  });
   // init current working layer if exists  
   {% if n == 0 %} 
   localStorage.removeItem('current_layer');
@@ -564,8 +609,12 @@ $(document).ready(function() {
           }
         }
         if ( ready ) {
+          $('#dlg-run').dialog("open").html('<img src="{{url_prefix}}/media/img/loading.gif"/><br/>Loading ...');
+          $('#dlg-run').siblings('.ui-dialog-titlebar').hide();
+          //$('#dlg-run').css("background-color","rgb(255,255,255, 0.9)");
           $.get("../upload/", params)
           .done( function(data) {
+            $('#dlg-run').dialog("close");
             if ( data['layer_uuid'] != undefined) {
               localStorage['current_layer']= data["layer_uuid"];
               fillForms(true);
@@ -864,6 +913,7 @@ $('#btn_logout').click(function(){
           {% for i,layer in geodata.iteritems %}
           <li>
             <center> {{layer.origfilename}}
+              <div class="remove_map" id="{{layer.uuid}}"></div>
               <div id="map{{i}}" class="map_div"><img id="{{layer.uuid}}" src="{{url_prefix}}{{layer.thumbnail}}"></div>
             </center>
           </li>
@@ -1947,5 +1997,11 @@ $(function() {
   </div>
 </div>
 
+<style>
+#dlg-run { background: url({{url_prefix}}/media/img/loading_small.gif) no-repeat 5px 8px);
+padding-left: 25px;
+</style>
+<div id="dlg-run">
+</div>
 </body>
 </html>
