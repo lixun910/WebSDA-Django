@@ -13,10 +13,10 @@
 
     {% if user.is_authenticated %}
         {% trans "Logged in" %}: {{ user.username }} 
-        (<a href="{% url 'auth_logout' %}">{% trans "Log out" %}</a> | 
-        <a href="{% url 'auth_password_change' %}">{% trans "Change password" %}</a>)
+        (<a href="">{% trans "Log out" %}</a> | 
+        <a href="">{% trans "Change password" %}</a>)
     {% else %}
-       <a href="{% url 'auth_login' %}">{% trans "Log in" %}</a>
+       <a href=>{% trans "Log in" %}</a>
     {% endif %}
     <hr />
     {% endblock %}

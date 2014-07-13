@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
+import django
 from django.conf.urls import patterns, url
 from django.views.generic import TemplateView
 
-urlpatterns = patterns('myproject.myapp.views',
+urlpatterns = patterns('',
+    url(r'^mylogin/$', 'django.contrib.auth.views.login', name='login'),
+    url(r'^mylogout/$', 'django.contrib.auth.views.logout', name='logout'),
+)
+                       
+urlpatterns += patterns('myproject.myapp.views',
     url(r'^test/$', 'test', name='test'),
     url(r'^login/$', 'login', name='login'),
     url(r'^logout/$', 'logout', name='logout'),
@@ -14,6 +20,7 @@ urlpatterns = patterns('myproject.myapp.views',
 
 urlpatterns += patterns('myproject.myapp.views_map',
     url(r'^get_dropbox_data/$', 'get_dropbox_data', name='get map data dropbox'),
+    url(r'^n_maps/$', 'get_n_maps', name='login'),
     url(r'^new_map/$', 'new_map', name='get new map'),
     url(r'^remove_map/$', 'remove_map', name='delete map'),
     url(r'^get_fields/$', 'get_fields', name='get field names'),

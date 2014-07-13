@@ -27,6 +27,20 @@ def get_dropbox_data(request):
         print request.POST;
         return HttpResponse(RSP_OK, content_type="application/json")
     return HttpResponse(RSP_FAIL, content_type="application/json")
+   
+def get_n_maps(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    
+    geodata = Geodata.objects.filter(userid=userid)
+    if geodata:
+        a = eval(RSP_OK)
+        a["n"] = len(geodata)
+        a = json.dumps(a)
+        return HttpResponse(a, content_type="application/json")
+    
+    return HttpResponse(RSP_FAIL, content_type="application/json")
     
 def new_map(request):
     userid = request.session.get('userid', False)
