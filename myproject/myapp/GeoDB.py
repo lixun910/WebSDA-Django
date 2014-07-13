@@ -106,6 +106,11 @@ def IsLayerExist(layer_uuid):
     else:
         return False
 
+def DeleteLayer(layer_uuid):
+    ds = GetDS()
+    table_name = TBL_PREFIX + layer_uuid
+    ds.Deletelayer( table_name)
+    
 def IsFieldUnique(layer_uuid, field_name):
     ds = GetDS()
     table_name = TBL_PREFIX + layer_uuid

@@ -12,7 +12,7 @@ import json, time, os, logging
 import multiprocessing as mp
 from hashlib import md5
 
-from myproject.myapp.models import Document, Geodata
+from myproject.myapp.models import Document, Geodata, Weights, SpregModel
 
 from views_utils import get_file_url, RSP_FAIL, RSP_OK, get_valid_path
 import GeoDB
@@ -60,16 +60,31 @@ def remove_map(request):
         shp_url_obj = get_file_url(userid, layer_uuid)
         if shp_url_obj:
             shp_location, shp_name = shp_url_obj
-            if shp_location.endswit("json"):
-                json_location = shp_location[:-3] + "simp.json"
-            else:
-                json_location = shp_location[:-3] + "json"
-            print json_location
-        # remove record in Document
-        # remove record in Geodata
-        # remove record in spregmodel
-        # remove record in weights
-        # remove table d+layer_uuid
+            filename_wo_ext = shp_name[0: shp_name.rindex(".")]
+            shp_dir = shp_location[0: shp_location.rindex("/")]
+            filelist = [ f for f in os.listdir(".") \
+                         if f.startswith(filename_wo_ext) ]
+            for f in filelist:
+                print f
+                os.remove(f)
+                
+            geodata = Geodata.objects.get(uuid=layer_uuid)
+            # remove record in Document
+            file_uuid = md5(geodata.userid + geodata.origfilename).hexdigest()
+            document = Document.objects.get(uuid=file_uuid)
+            document.delete()
+            # remove record in Geodata
+            geodata.delete()
+            # remove record in spregmodel
+            models = SpregModel.objects.filter(userid = userid)\
+                   .filter(layeruuid=layer_uuid)
+            models.delete()
+            # remove record in weights
+            Weights.objects.filter(userid = userid).filter(shpfilename=shp_name)
+            # remove table d+layer_uuid
+            GeoDB.DeleteLayer(layer_uuid)
+        return HttpResponse(RSP_OK, content_type="application/json")
+    return HttpResponse(RSP_FAIL, content_type="application/json")
         
     
 """
