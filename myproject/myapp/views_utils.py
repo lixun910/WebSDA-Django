@@ -3,7 +3,6 @@ from django.http import HttpResponseRedirect
 from django.http import HttpResponse
 from django.conf import settings
 
-from myproject.myapp.models import Document, Weights, Geodata, Preference
 
 import logging
 import json, time, os
@@ -19,6 +18,7 @@ RSP_FAIL = '{"success":0}'
 Get reletive url of shape files that user uploaded to server.
 """
 def get_file_url(userid, layer_uuid):
+    from myproject.myapp.models import Document, Geodata
     try:
         geodata = Geodata.objects.get(uuid=layer_uuid)
         file_uuid = md5(geodata.userid + geodata.origfilename).hexdigest()
@@ -48,6 +48,7 @@ def load_from_json(json_str):
 Get W object from database using weights uuid
 """
 def helper_get_W(wuuid):
+    from myproject.myapp.models import Weights
     w_record = Weights.objects.get(uuid=wuuid)
     if w_record:
         neighbors_dict = {}
@@ -77,5 +78,21 @@ def helper_get_W_list(wuuids):
     return w_list
 
 
+def get_valid_path(orig_path):
+    shp_path = orig_path
+    ext = shp_path[shp_path.rfind(".") +1 :]
+    while os.path.isfile(shp_path):
+        shp_path = shp_path[0 : shp_path.rfind(".")]
+        suffix = shp_path.split("_")[-1]
+        if suffix != shp_path and suffix.isdigit():
+            next_num = int(suffix) + 1
+            shp_path = "%s_%s.%s" % (shp_path[0: shp_path.rindex("_")], next_num, ext) 
+        else:
+            shp_path = "%s_1.%s" % (shp_path, ext)
+    return shp_path
+    
+
 if __name__ == "__main__":
-    helper_get_W_list(["7819b820f3d4be9d99d3ea2602c11ad5"])
+    #helper_get_W_list(["7819b820f3d4be9d99d3ea2602c11ad5"])
+    print get_valid_path("/Users/xun/github/WebSDA-Django/myproject/media/temp/world_1.shp")
+    print get_valid_path("/Users/xun/github/WebSDA-Django/myproject/media/temp/world.json")

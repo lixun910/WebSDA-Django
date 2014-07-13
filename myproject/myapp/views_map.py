@@ -14,7 +14,7 @@ from hashlib import md5
 
 from myproject.myapp.models import Document, Geodata
 
-from views_utils import get_file_url, RSP_FAIL, RSP_OK
+from views_utils import get_file_url, RSP_FAIL, RSP_OK, get_valid_path
 import GeoDB
 
 logger = logging.getLogger(__name__)
@@ -50,6 +50,28 @@ def new_map(request):
                 )
     return HttpResponse(RSP_FAIL, content_type="application/json")
 
+def remove_map(request):
+    userid = request.session.get('userid', False)
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    if request.method == 'GET': 
+        layer_uuid = request.GET.get("layer_uuid","")
+        # remove files on disk
+        shp_url_obj = get_file_url(userid, layer_uuid)
+        if shp_url_obj:
+            shp_location, shp_name = shp_url_obj
+            if shp_location.endswit("json"):
+                json_location = shp_location[:-3] + "simp.json"
+            else:
+                json_location = shp_location[:-3] + "json"
+            print json_location
+        # remove record in Document
+        # remove record in Geodata
+        # remove record in spregmodel
+        # remove record in weights
+        # remove table d+layer_uuid
+        
+    
 """
 Get field names from a map layer. 
 The layer_uuid is used to query from Geodata database.
@@ -152,20 +174,16 @@ def upload(request):
         if json_url != None:
             shp_name = json_url.split("/")[-1]
             shp_path = settings.MEDIA_ROOT + "/temp/" + shp_name
-            while os.path.isfile(shp_path):
-                shp_path = shp_path[0:shp_path.rfind(".")] + "_1.json" 
+            shp_path = get_valid_path(shp_path)
             urllib.urlretrieve(json_url, shp_path)
             driver = "GeoJSON"
             proc = True
         elif shp_url and shx_url and dbf_url:
             shp_name = shp_url.split("/")[-1]
             shp_path = settings.MEDIA_ROOT + "/temp/" + shp_url.split("/")[-1]
-            dbf_path = settings.MEDIA_ROOT + "/temp/" + dbf_url.split("/")[-1]
-            shx_path = settings.MEDIA_ROOT + "/temp/" + shx_url.split("/")[-1]
-            while os.path.isfile(shp_path):
-                shp_path = shp_path[:-4] + "_1.shp" 
-                dbf_path = dbf_path[:-4] + "_1.dbf" 
-                shx_path = shx_path[:-4] + "_1.shx" 
+            shp_path = get_valid_path(shp_path)
+            dbf_path = shp_path[:-3] + "dbf"
+            shx_path = shp_path[:-3] + "shx"
             urllib.urlretrieve(shp_url, shp_path)
             urllib.urlretrieve(dbf_url, dbf_path)
             urllib.urlretrieve(shx_url, shx_path)
