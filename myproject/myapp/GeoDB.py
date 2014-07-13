@@ -26,6 +26,7 @@ def GetDS():
             db_name = db_set['NAME']
             conn_str = "PG: host=%s dbname=%s user=%s password=%s" \
                      % (db_host, db_name, db_uname, db_upwd)
+            print "conn_str", conn_str
             DS = ogr.Open(conn_str) 
         else:
             GEODB_PATH = os.path.realpath(os.path.dirname(__file__)) \
@@ -39,6 +40,7 @@ def GetDS():
         return DS
 
 def ExportToDB(shp_path, layer_uuid):
+    global db_host, db_port, db_uname, db_upwd, db_name
     print "export starting..", layer_uuid
     table_name = TBL_PREFIX + layer_uuid
     if settings.DB == 'postgres':
@@ -109,7 +111,8 @@ def IsLayerExist(layer_uuid):
 def DeleteLayer(layer_uuid):
     ds = GetDS()
     table_name = TBL_PREFIX + layer_uuid
-    ds.Deletelayer( table_name)
+    sql = "DROP TABLE %s CASCADE" % table_name
+    ds.ExecuteSQL(str(sql))
     
 def IsFieldUnique(layer_uuid, field_name):
     ds = GetDS()

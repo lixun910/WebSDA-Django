@@ -57,22 +57,36 @@ def remove_map(request):
     if request.method == 'GET': 
         layer_uuid = request.GET.get("layer_uuid","")
         # remove files on disk
+        print "remove,userid,layer_uuid", userid, layer_uuid
         shp_url_obj = get_file_url(userid, layer_uuid)
         if shp_url_obj:
             shp_location, shp_name = shp_url_obj
-            filename_wo_ext = shp_name[0: shp_name.rindex(".")]
+            shp_location = settings.PROJECT_ROOT + shp_location
+            print "remove,shp_location,shp_name", shp_location, shp_name
+            filename_wo_ext = shp_name[0: shp_name.rindex(".")+1]
             shp_dir = shp_location[0: shp_location.rindex("/")]
-            filelist = [ f for f in os.listdir(".") \
+            filelist = [ f for f in os.listdir(shp_dir) \
                          if f.startswith(filename_wo_ext) ]
             for f in filelist:
+                f = shp_dir + os.sep + f
                 print f
                 os.remove(f)
                 
             geodata = Geodata.objects.get(uuid=layer_uuid)
             # remove record in Document
             file_uuid = md5(geodata.userid + geodata.origfilename).hexdigest()
-            document = Document.objects.get(uuid=file_uuid)
-            document.delete()
+            if shp_name.endswith(".shp"):
+                docs = Document.objects.filter(userid=userid)
+                shp_doc = docs.filter(filename=shp_name)
+                shp_doc.delete()
+                dbf_doc = docs.filter(filename=shp_name[:-3]+"dbf")
+                dbf_doc.delete()
+                shx_doc = docs.filter(filename=shp_name[:-3]+"shx")
+                shx_doc.delete()
+            else:
+                document = Document.objects.get(uuid=file_uuid)
+                document.delete()
+            
             # remove record in Geodata
             geodata.delete()
             # remove record in spregmodel
@@ -80,7 +94,9 @@ def remove_map(request):
                    .filter(layeruuid=layer_uuid)
             models.delete()
             # remove record in weights
-            Weights.objects.filter(userid = userid).filter(shpfilename=shp_name)
+            weights = Weights.objects.filter(userid=userid)\
+                    .filter(shpfilename=shp_name)
+            weights.delete()
             # remove table d+layer_uuid
             GeoDB.DeleteLayer(layer_uuid)
         return HttpResponse(RSP_OK, content_type="application/json")
@@ -215,9 +231,9 @@ def upload(request):
             layer_uuid = md5(userid + shp_name).hexdigest()
         # save meta data to Geodata table
         table_name = None
-        print shp_path
+        print "get meta data", shp_path
         meta_data = GeoDB.GetMetaData(shp_path, table_name, driver)
-        print meta_data
+        print "save meta data", meta_data
         new_geodata = Geodata(uuid=layer_uuid, userid=userid, 
                               origfilename=shp_name, n=meta_data['n'], 
                               geotype=str(meta_data['geom_type']), 
