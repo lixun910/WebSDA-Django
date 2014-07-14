@@ -1499,7 +1499,7 @@ $(function() {
               conti = true;
           $.each($('#sel-w-id').children(), function(i,j) { 
             if( name == $(j).text()) {
-              alert("Input unique ID field already exists.");
+              ShowMsgBox("","Input unique ID field already exists.");
               conti = false;
               return;
             }
@@ -1512,6 +1512,7 @@ $(function() {
               if (data["success"] == 1) {
                 loadFieldNames();
                 that.dialog( "close" );
+                ShowMsgBox("", "Add uniue ID successful.");
               }
             });
           }
@@ -1551,7 +1552,7 @@ $(function() {
           }).done(function(data) { 
             console.log(data); 
             loadModelNames();
-            alert("Save model done.");
+            ShowMsgBox("","Save model done.");
           });
         }
         $(this).dialog("close");
@@ -1671,12 +1672,12 @@ $(function() {
       if (obj.checked){ 
       error[i] = 1;
         if ( i==1 && w_list.length == 0 ) {
-          alert("Please select weights file for model.");
+          ShowMsgBox("","Please select weights file for model.");
           conti = false;
           return;
         }
         if ( i==1 && wk_list.length == 0 ) {
-          alert("Please select kernel weights file for model.");
+          ShowMsgBox("","Please select kernel weights file for model.");
           conti = false;
           return;
         }
@@ -1714,7 +1715,7 @@ $(function() {
         }
       } catch (e) {console.log(e);}
     })
-    .fail(function(data){ alert("Spatial regression failed.");});
+    .fail(function(data){ ShowMsgBox("Erro","Spatial regression failed.");});
     });
   });
 </script>
@@ -1930,11 +1931,11 @@ $(function() {
           w_id = $('#sel-w-id').find(":selected").val(),
           active = $('#tabs-dlg-weights').tabs("option","active");
           if ( w_name.length == 0 ) {
-            alert("Error: Weights name can't be empty.");
+            ShowMsgBox("Error", "Weights name can't be empty.");
             return;
           }
           if ( w_id.length == 0 || $('#img-id-nochk').is(":visible") ) {
-            alert("Error: An unique ID for weights creation is required.");
+            ShowMsgBox("Error", "An unique ID for weights creation is required.");
             return;
           }
           var post_param = {
@@ -1963,7 +1964,7 @@ $(function() {
             } else if ( dist_method == 2 ) {
               dist_value = $('#txt-dist-thr').val() + "," + $('#spn-pow-idst').val();
             } else {
-              alert("Please select a distance method.");
+              ShowMsgBox("","Please select a distance method.");
               return;
             }
     
@@ -1982,17 +1983,17 @@ $(function() {
           post_param['w_type'] = active;
           $.post("../create_weights/", post_param, function(){})
             .done(function( data ) {
-              data = JSON.parse(data);
+              console.log("create_weights", data);
               if ( data["success"] == 1 ) {
                 $('#txt-w-name').val("").next().remove();
                 $('#sel-w-id').next().remove();
                 loadWnames();
-                alert("Create weights done.");
+                ShowMsgBox("","Create weights done.");
                 return;
               }
-              alert("Create weights failed.");
+              ShowMsgBox("Error", "Create weights failed.");
             })
-            .fail(function() { alert("Create weights failed."); })
+            .fail(function() { ShowMsgBox("Error", "Create weights failed."); })
             .always(function(){
               $("#btn-create-w").attr("disabled",false)
                 .fadeTo(0, 1)

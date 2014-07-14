@@ -116,9 +116,9 @@ def create_weights(request):
                              histogram=histogram, neighbors=neighbors, \
                              weights=weights)
         new_w_item.save()
-        return HttpResponse(RSP_OK)
+        return HttpResponse(RSP_OK, content_type="application/json")
     
-    return HttpResponse(RSP_FAIL)
+    return HttpResponse(RSP_FAIL, content_type="application/json")
 
 """
 Get all weights file names that created based on one map layer.
