@@ -1714,10 +1714,13 @@ $(function() {
     });
     if ( conti == false) return;
     // run model
+    $('#dlg-run').dialog("open").html('<img src="{{url_prefix}}/media/img/loading.gif"/><br/>Loading ...');
+    $('#dlg-run').siblings('.ui-dialog-titlebar').hide();
     params = { 'layer_uuid': layer_uuid, 'w': w_list, 'wk': wk_list, 'type': model_type, 'method': method, 'error': error, 'x': x, 'y': y, 'ye': ye, "h": h, "r": r, "t": t, csrfmiddlewaretoken: '{{ csrf_token }}'};
     $.post("../spatial_regression/", params, function() {
       $('#btn_result').hide();
     }).done(function(data) {
+      $('#dlg-run').dialog("close");
       try {
         data = JSON.parse(data);
         if ( data['success'] == 1 ) {
