@@ -57,7 +57,7 @@ body{
         </font><font style="color: #666;" size=16 face="Century Gothic">}</font>
       </p>
       <p style="text-align:right;">
-      <form id="form-login">{% csrf_token %}
+      <form id="form-login" method="post">{% csrf_token %}
       <table class="logintable">
         <tr>
           <td>
@@ -69,21 +69,22 @@ body{
         </tr>
         <tr>
           <td>
-            <input type="text" name="email" value=''></input>
+            <input type="text" name="lemail" value=''></input>
           </td>
           <td>
-            <input type="password" name="password" value=''></input>&nbsp;
-            <button id="btn_login" class="ui-state-default button-text-only">Login </button>
+            <input type="password" name="lpassword" value=''></input>&nbsp;
+            <button id="btn_login" type="submit" class="ui-state-default button-text-only">Login </button>
           </td>
         </tr>
       </table>
+      &nbsp;&nbsp;&nbsp;<font color="red" style="font-size:10px" face="Century Gothic">{{error_msg}}</font>
       </form>
       </p>
     </td>
     <td style="padding-left:100px">
       <font style="font-size:30px" face="Century Gothic"> Sign Up </font>
       <br/><br/> 
-      <form id="form-signup">{% csrf_token %}
+      <form id="form-signup" method="post" action="../signup/">{% csrf_token %}
       <table class="signuptable" width="400px">
         <tr>
           <td width=100%>
@@ -110,14 +111,14 @@ body{
           </td>
         </tr>
       </table>
-      </form>
       <br/>
       <font style="font-size:10px" face="Century Gothic"> &nbsp;&nbsp;By clicking Sign Up, you agree to our Terms and Policy.</font>
       <br/>
       <br/>
       <p class="text-align:right;">
-      <button id="btn_signup" class="ui-state-default button-text-only" style="width:100">Sign Up</button>
+      <button id="btn_signup" type="submit" class="ui-state-default button-text-only" style="width:100">Sign Up</button>
       </p>
+      </form>
     </td>
   </tr>
   </table>
@@ -134,23 +135,15 @@ $('#btn_login').click( function() {
     console.log(data);
     location.reload();
   })
-  .fail( function(xhr, textStatus, errorThrown) {
-    console.log(xhr.responseText);
+  .fail( function() {
+    console.log("error");
   });
 });
 
-$('#btn_signup').click( function() {
-  $.post("../signup/", $("form-signup").serialize())
-  .done(function(data) {
-    console.log(data);
-    location.reload();
-  })
-  .fail( function(xhr, textStatus, errorThrown) {
-    console.log(xhr.responseText);
-  });
+$('#btn_signup').submit( function(event) {
+  event.preventDefault(); 
 });
 
-$("btn_signup").css({width: '100px'});
 
 function setupInput(name, placeholder) {
   $(".signuptable input[name="+name+"]").focus(function() {
@@ -167,13 +160,14 @@ setupInput("first_name", "First Name");
 setupInput("last_name", "Last Name");
 setupInput("email", "Email");
 setupInput("reemail", "Re-enter Email");
-$('.siguptable input[name=password]').focus(function() {
+
+$('.signuptable input[name=password]').focus(function() {
   if ($(this).val() == "Enter Password") {
     $(this).attr("type", "password");
     $(this).val('');
   }
 });
-$('.siguptable input[name=password]').blur(function() {
+$('.signuptable input[name=password]').blur(function() {
   if ($(this).val() == '') {
     $(this).attr("type", "text");
     $(this).val("Enter Password");

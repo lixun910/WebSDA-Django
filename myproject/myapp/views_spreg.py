@@ -5,6 +5,7 @@ from django.http import HttpResponseRedirect
 from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 
 from myproject.myapp.models import Weights, Geodata, Preference,SpregModel
 
@@ -21,8 +22,9 @@ from views_utils import helper_get_W_list, RSP_FAIL, RSP_OK
 
 logger = logging.getLogger(__name__)
 
+@login_required
 def save_spreg_preference(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'POST':
@@ -53,8 +55,9 @@ def save_spreg_preference(request):
         return HttpResponse("1")
     return HttpResponse("0")
 
+@login_required
 def load_spreg_preference(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     try:
@@ -63,8 +66,9 @@ def load_spreg_preference(request):
     except Preference.DoesNotExist:
         return HttpResponse(RSP_FAIL, content_type="application/json")
     
+@login_required
 def save_spreg_result(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'POST':
@@ -87,8 +91,9 @@ def save_spreg_result(request):
             return HttpResponse("1")
     return HttpResponse("0")
     
+@login_required
 def get_spreg_model_names(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'GET': 
@@ -105,8 +110,9 @@ def get_spreg_model_names(request):
             pass
     return HttpResponse(RSP_FAIL, content_type="application/json")
     
+@login_required
 def load_spreg_model(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'GET': 
@@ -120,8 +126,9 @@ def load_spreg_model(request):
             pass
     return HttpResponse(RSP_FAIL, content_type="application/json")
         
+@login_required
 def save_spreg_model(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'POST': 
@@ -148,8 +155,9 @@ def save_spreg_model(request):
     return HttpResponse(RSP_FAIL, content_type="application/json")
     
     
+@login_required
 def spatial_regression(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
          

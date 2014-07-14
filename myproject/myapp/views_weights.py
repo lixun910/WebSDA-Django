@@ -5,6 +5,7 @@ from django.http import HttpResponseRedirect
 from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 
 import numpy as np
 import json, time, os, logging
@@ -27,13 +28,13 @@ Create weights file from a shape file using PySAL.
 Note: weights are now stored in database as a JSON string, which
 needs more discussion about, e.g. big size weights file.
 """
+@login_required
 def create_weights(request):
     print "start creating weights"
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'POST':
-        userid = request.session['userid']
         layer_uuid = request.POST.get("layer_uuid",None)
         w_id = request.POST.get("w_id", None)
         w_name = request.POST.get("w_name", None)
@@ -49,10 +50,10 @@ def create_weights(request):
         #print request.POST
         file_url, shpfilename = get_file_url(userid, layer_uuid)
         file_url = settings.PROJECT_ROOT + file_url
-        shp_path = file_url
         if file_url.endswith("json"):
-            file_url = file_url[:-3] + "shp"
-
+            file_url = file_url[0:file_url.rindex(".")] + ".shp"
+        shp_path = file_url
+        print "create_weights", file_url
         # detect w_id is unique ID
         if w_id == "ogc_fid":
             w_id = "ogc_fid4"
@@ -122,8 +123,9 @@ def create_weights(request):
 """
 Get all weights file names that created based on one map layer.
 """
+@login_required
 def get_weights_names(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
 
@@ -142,8 +144,9 @@ def get_weights_names(request):
             return HttpResponse(json_result, content_type="application/json")
     return HttpResponse(RSP_FAIL, content_type="application/json")
 
+@login_required
 def check_w(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     
@@ -159,8 +162,9 @@ def check_w(request):
                 pass
     return HttpResponse("0")
 
+@login_required
 def check_ID(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     
@@ -173,8 +177,9 @@ def check_ID(request):
         
     return HttpResponse("0")
     
+@login_required
 def add_Unique_ID(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     

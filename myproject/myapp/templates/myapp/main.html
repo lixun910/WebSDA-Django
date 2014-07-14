@@ -205,7 +205,7 @@ function toggleTubar(isPts) { }
 function loadSpregP() {
   $.get("../get_spreg_p/", {},function() {})
   .done(function(data) {
-    if ( "success" in data ) {
+    if ( data["success"] != 1 ) {
       console.log("get spreg preference failed.");
     } else {
       var txt_items = ['gmm_epsilon', 'gmm_max_iter', 'instruments_w_lags', 'other_missingValue', 'ml_epsilon'];
@@ -1575,7 +1575,7 @@ $(function() {
             $.get("../load_spreg_model/", {'layer_uuid':layer_uuid,'name':model_name}, function(){})
             .done(function(data) {
               console.log(data);
-              if ( "success" in data ) {
+              if ( data["success"] != 1 ) {
                 console.log("load spreg model failed.");
               } else {
                 resetSpreg();

@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.core.files import File
+from django.contrib.auth.decorators import login_required
 
 import numpy as np
 import json, time, os, logging
@@ -19,8 +20,9 @@ import GeoDB
 
 logger = logging.getLogger(__name__)
 
+@login_required
 def get_dropbox_data(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'POST': 
@@ -28,8 +30,9 @@ def get_dropbox_data(request):
         return HttpResponse(RSP_OK, content_type="application/json")
     return HttpResponse(RSP_FAIL, content_type="application/json")
    
+@login_required
 def get_n_maps(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     
@@ -42,8 +45,9 @@ def get_n_maps(request):
     
     return HttpResponse(RSP_FAIL, content_type="application/json")
     
+@login_required
 def new_map(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'GET': 
@@ -64,8 +68,9 @@ def new_map(request):
                 )
     return HttpResponse(RSP_FAIL, content_type="application/json")
 
+@login_required
 def remove_map(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'GET': 
@@ -121,8 +126,9 @@ def remove_map(request):
 Get field names from a map layer. 
 The layer_uuid is used to query from Geodata database.
 """
+@login_required
 def get_fields(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'GET': 
@@ -135,8 +141,9 @@ def get_fields(request):
             return HttpResponse(fields, content_type="application/json")
     return HttpResponse(RSP_FAIL, content_type="application/json")
 
+@login_required
 def get_minmaxdist(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'GET': 
@@ -154,8 +161,9 @@ def get_minmaxdist(request):
 Upload shape files to server. Write meta data to meta database.
 In background, export files to spatial database. 
 """
+@login_required
 def upload(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     
@@ -236,8 +244,8 @@ def upload(request):
             proc = True
         # save to file information database
         layer_uuid =  md5(userid + shp_name).hexdigest()
-        docfile = File(open(shp_path))
-        newdoc = Document(uuid= layer_uuid, userid= userid,filename=shp_name, docfile = docfile)
+        #docfile = File(open(shp_path))
+        newdoc = Document(uuid= layer_uuid, userid= userid,filename=shp_name, docfile = "temp/"+shp_name)
         newdoc.save()
     
     if proc:
@@ -270,8 +278,9 @@ def upload(request):
 """
 Check if field exists in Django DB
 """
+@login_required
 def check_field(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'GET': 
@@ -291,9 +300,10 @@ The image name will just append ".png" to shape file name.
 The url of image is stored in related geodatabase under the field
 "thumbnail".
 """
+@login_required
 def upload_canvas(request):
     import base64, cStringIO, re
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     if request.method == 'POST': 

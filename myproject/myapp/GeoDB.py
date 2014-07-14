@@ -2,6 +2,7 @@ import os, json
 import subprocess
 from osgeo import ogr
 from django.conf import settings
+from hashlib import md5
 
 TBL_PREFIX = "d"
 
@@ -45,6 +46,7 @@ def ExportToDB(shp_path, layer_uuid):
     table_name = TBL_PREFIX + layer_uuid
     if settings.DB == 'postgres':
         script = 'ogr2ogr -skipfailures -append -f "PostgreSQL" -overwrite PG:"host=%s dbname=%s user=%s password=%s" %s -nln %s -nlt GEOMETRY > /dev/null'  % (db_host, db_name, db_uname, db_upwd, shp_path, table_name)
+        print script
         rtn = subprocess.call( script, shell=True)
     else:
         script = 'ogr2ogr -skipfailures -append -overwrite %s  %s -nln %s > /dev/null'  % (GEODB_PATH, shp_path, table_name)
@@ -83,6 +85,7 @@ def ExportToESRIShape(json_path):
     # will be called in subprocess
     import subprocess
     shp_path = json_path[0:json_path.rfind(".")] + ".shp"
+    print "ExportToESRIShape", shp_path
     script = 'ogr2ogr -f "ESRI Shapefile" %s %s' %(shp_path,json_path)
     rtn = subprocess.call( script, shell=True)
     if rtn != 0:
@@ -95,9 +98,22 @@ def ExportToJSON(shp_path):
     if shp_path.endswith("json"):
         json_path = shp_path[0:shp_path.rfind(".")] + ".simp.json"
     else:
-        json_path = shp_path[:-3] + "json"
+        json_path = shp_path[0:shp_path.rfind(".")] + ".json"
     script = 'ogr2ogr -select "" -f "GeoJSON" %s %s' %(json_path,shp_path)
     rtn = subprocess.call( script, shell=True)
+    
+    
+def SaveDBTableToShp(geodata, table_name):
+    from myproject.myapp.models import Geodata, Document
+    file_uuid = md5(geodata.userid + geodata.origfilename).hexdigest()
+    document = Document.objects.get(uuid=file_uuid)
+    shp_path = settings.PROJECT_ROOT + document.docfile.url
+    shp_path = shp_path[0: shp_path.rindex(".")] + ".shp"
+    import subprocess
+    script = 'ogr2ogr -overwrite -f "ESRI Shapefile" %s PG:"host=%s dbname=%s user=%s password=%s" %s' %(shp_path, db_host, db_name, db_uname, db_upwd, table_name)
+    print "SaveDBTableToShp", script
+    rtn = subprocess.call( script, shell=True)    
+        
     
 def IsLayerExist(layer_uuid):
     ds = GetDS()
@@ -154,7 +170,9 @@ def AddUniqueIDField(layer_uuid, field_name):
         fields[str(field_name)] = "Integer"
         geodata.fields = fields
         geodata.save()
-        
+       
+        # save changes to shp file (pysal needs shp file) 
+        SaveDBTableToShp(geodata, table_name)
         return True
     except Exception, e:
         print "AddUniqueIDField() error"
@@ -185,6 +203,9 @@ def AddField(layer_uuid, field_name, field_type, values):
     fields[field_name] = ["Integer","Real","String"][field_type]
     geodata.fields = fields
     geodata.save()
+    
+    # save changes to shp file (pysal needs shp file) 
+    SaveDBTableToShp(geodata, table_name)
     
 def GetDataSource(drivername, filepath):
     driver = ogr.GetDriverByName(drivername)

@@ -20,6 +20,7 @@ def CreateWeights(shp_path, weights_name, w_unique_ID, weights_type, \
     weights_type = int(weights_type)
     if weights_type < 0 or weights_type > 2:
         raise "Weights Type is illegal."
+    w_unique_ID = w_unique_ID.lower()
     if weights_type == 0: 
         # contiguity-based weights | GAL file
         cont_type = int(cont_type)

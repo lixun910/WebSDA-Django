@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.http import HttpResponseRedirect
@@ -16,23 +19,56 @@ from views_utils import get_file_url
 logger = logging.getLogger(__name__)
 
 def test(request):
-    return HttpResponse(request.session['userid'])
+    return HttpResponse(request.user.id)
     
-def logout(request):
-    request.session['userid'] = None
+def my_logout(request):
+    logout(request)
     return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     
-def login(request):
-    session_userid = request.session.get('userid', False)
-    userid = request.POST.get('userid', None)
-    print session_userid, userid
-    if session_userid:
-        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/main/') 
-    elif userid: 
-        # validate
-        request.session['userid'] = userid
-        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/main/') 
-         
+def my_login(request):
+    error_msg = ""
+    if request.method == 'POST':
+        email = request.POST.get("lemail")
+        password = request.POST.get("lpassword")
+        user = authenticate(username=email, password=password)
+        if user is not None:
+            # user.is_active
+            login(request, user)
+            print user.id
+            return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/main/') 
+        else:
+            error_msg = "Email or password don't match any existing record."
+    return render_to_response(
+        'myapp/login.html',{
+            'url_prefix': settings.URL_PREFIX,\
+            'theme_jquery': settings.THEME_JQUERY,
+            'error_msg': error_msg
+        },
+        context_instance=RequestContext(request)
+    )
+
+def my_signup(request):
+    print "signup", request.POST
+    if request.method == 'POST': 
+        first_name = request.POST.get("first_name")
+        last_name = request.POST.get("last_name")
+        email = request.POST.get("email")
+        reemail = request.POST.get("reemail")
+        password = request.POST.get("password")
+        
+        print first_name, last_name, email, reemail, password
+        
+        if first_name and last_name and email and reemail and password:
+            if email == reemail:
+                username = email
+                user = User.objects.create_user(username, email, password)
+                user.first_name = first_name
+                user.last_name = last_name
+                user.save()
+                user = authenticate(username=email, password=password)
+                login(request, user)
+                return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/main/') 
+            
     return render_to_response(
         'myapp/login.html',{
             'url_prefix': settings.URL_PREFIX,\
@@ -40,10 +76,11 @@ def login(request):
         },
         context_instance=RequestContext(request)
     )
-
+        
+@login_required
 def main(request):
     # check user login
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
 
@@ -66,6 +103,7 @@ def main(request):
         context_instance=RequestContext(request)
     )
 
+"""
 def list(request):
     # Handle file upload
     if request.method == 'POST' and request.session.get('userid', False):
@@ -94,9 +132,11 @@ def list(request):
         {'documents': documents, 'form': form},
         context_instance=RequestContext(request)
     )
-        
+"""      
+
+@login_required
 def save_pdf(request):
-    userid = request.session.get('userid', False)
+    userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     from reportlab.pdfgen import canvas
