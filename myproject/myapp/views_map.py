@@ -228,15 +228,18 @@ def upload(request):
             shp_name = json_url.split("/")[-1]
             shp_path = settings.MEDIA_ROOT + "/temp/" + shp_name
             shp_path = get_valid_path(shp_path)
+            shp_name = shp_path[shp_path.rindex("/") + 1:]
             urllib.urlretrieve(json_url, shp_path)
             driver = "GeoJSON"
             proc = True
         elif shp_url and shx_url and dbf_url:
             shp_name = shp_url.split("/")[-1]
-            shp_path = settings.MEDIA_ROOT + "/temp/" + shp_url.split("/")[-1]
+            shp_path = settings.MEDIA_ROOT + "/temp/" + shp_name
             shp_path = get_valid_path(shp_path)
+            shp_name = shp_path[shp_path.rindex("/") + 1:]
             dbf_path = shp_path[:-3] + "dbf"
             shx_path = shp_path[:-3] + "shx"
+            print "upload from dropbox", shp_name, shp_path
             urllib.urlretrieve(shp_url, shp_path)
             urllib.urlretrieve(dbf_url, dbf_path)
             urllib.urlretrieve(shx_url, shx_path)

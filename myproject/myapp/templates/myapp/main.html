@@ -352,6 +352,10 @@ function InitRemoveButtons() {
                   that.closest("li").remove();
                   $("label[for=slides_" + mapCounter).remove();
                   mapCounter--;
+                  if (mapCounter == 0) {
+                    localStorage.setItem('current_layer', undefined);
+                    $('#btnCreateW, #btnSpreg, #btnNewMap').css("opacity",0.2);
+                  }
                 }, 100);
               }
             });
@@ -447,17 +451,30 @@ function ShowJsonMap(jsonFilePath, content, onSuccess) {
       maxX = Number.NEGATIVE_INFINITY,
       minY = Number.POSITIVE_INFINITY,
       maxY = Number.NEGATIVE_INFINITY;
-    json.features.forEach(function(feat,i) {
-      feat.geometry.coordinates.forEach(function(coords,j) {
-        coords.forEach( function( xy,k ) {
-          x = xy[0], y = xy[1];
-          if (x > maxX) {maxX = x;}
-          if (x < minX) {minX = x;}
-          if (y > maxY) {maxY = y;}
-          if (y < minY) {minY = y;}
+    var shpType = json.features[0].geometry.type;
+    if ( shpType == "Polygon" || shpType == "MultiPolygon" ) {
+      json.features.forEach(function(feat,i) {
+        feat.geometry.coordinates.forEach(function(coords,j) {
+          coords.forEach( function( xy,k ) {
+            x = xy[0], y = xy[1];
+            if (x > maxX) {maxX = x;}
+            if (x < minX) {minX = x;}
+            if (y > maxY) {maxY = y;}
+            if (y < minY) {minY = y;}
+          });
         });
       });
-    });
+    } else if ( shpType == "Point" || shpType == "MultiPoint" ){
+      json.features.forEach(function(feat,i) {
+        var pt = feat.geometry.coordinates,
+            x = pt[0],
+            y = pt[1];
+            if (x > maxX) {maxX = x;}
+            if (x < minX) {minX = x;}
+            if (y > maxY) {maxY = y;}
+            if (y < minY) {minY = y;}
+      });
+    }
     var xyratio = (maxX-minX)/(maxY-minY),
       offsetW = 0.0,
       offsetH = 0.0;
@@ -480,26 +497,38 @@ function ShowJsonMap(jsonFilePath, content, onSuccess) {
       });
     }
     var context = canvas[0].getContext("2d");
+    context.lineWidth = 1
     context.strokeStyle = "#cccccc";
     context.fillStyle = "#ffffff";
     context.imageSmoothingEnabled= false;
-    json.features.forEach( function(feat,i) {
-      feat.geometry.coordinates.forEach(function(coords,j) {
-        context.beginPath();
-        coords.forEach( function(xy,k) {
-          var x = xy[0], y = xy[1];
-          x = scaleX(x)+offsetW;
-          y = scaleY(y)+offsetH;
-          if (k === 0) {
-            context.moveTo(x,y);
-          } else {
-            context.lineTo(x,y);
-          }
+    if ( shpType == "Polygon" ) { 
+      json.features.forEach( function(feat,i) {
+        feat.geometry.coordinates.forEach(function(coords,j) {
+          context.beginPath();
+          coords.forEach( function(xy,k) {
+            var x = xy[0], y = xy[1];
+            x = scaleX(x)+offsetW;
+            y = scaleY(y)+offsetH;
+            if (k === 0) {
+              context.moveTo(x,y);
+            } else {
+              context.lineTo(x,y);
+            }
+          });
+          context.closePath();
+          context.stroke();
         });
-        context.closePath();
-        context.stroke();
       });
-    });
+    } else if ( shpType == "Point" ) {
+      json.features.forEach( function(feat,i) {
+        var pt = feat.geometry.coordinates,
+            x = pt[0],
+            y = pt[1];
+        x = scaleX(x)+offsetW;
+        y = scaleY(y)+offsetH;
+        context.fillRect(x,y,2,2);
+      });
+    }
     //context.fill();
   }; // end createJsonMap
   if (content!=undefined) {
@@ -718,7 +747,7 @@ $(document).ready(function() {
       return false;
     } 
     $.each(files, function(i, f) {
-      if ($.inArray(getSuffix(f.name), ['json','geojson','shp','shx','dbf'] )) {
+      if ($.inArray(getSuffix(f.name), ['json','geojson','shp','shx','dbf'] ) >=0) {
         formData.append('docfile', f, f.name);
       }
     });

@@ -76,6 +76,19 @@ def my_signup(request):
         },
         context_instance=RequestContext(request)
     )
+
+def dup_email(request):
+    email = request.GET.get("email", None)
+    if email:
+        try:
+            user = User.objects.get(username=email)
+            return HttpResponse("1")
+        except:
+            pass
+        
+    return HttpResponse("0")
+    
+        
         
 @login_required
 def main(request):

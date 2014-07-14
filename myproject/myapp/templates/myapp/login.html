@@ -41,12 +41,13 @@ body{
 }
 </style>
 <script src="{{url_prefix}}/media/js/jquery.min.js"></script>
+<script src="{{url_prefix}}/media/js/utils.js"></script>
 <link rel="stylesheet" href="{{url_prefix}}/media/css/{{theme_jquery}}/jquery-ui-1.10.4.custom.min.css">
 </head>
 <body>
 
 <div id="login"> 
-  <table>
+  <table width="980px">
     <tr>
     <td style="vertical-align:top"> 
       <p>
@@ -81,16 +82,17 @@ body{
       </form>
       </p>
     </td>
-    <td style="padding-left:100px">
+    <td style="padding-left:60px">
       <font style="font-size:30px" face="Century Gothic"> Sign Up </font>
       <br/><br/> 
       <form id="form-signup" method="post" action="../signup/">{% csrf_token %}
       <table class="signuptable" width="400px">
         <tr>
-          <td width=100%>
+          <td width=320>
             <input type="text" name="first_name" value='First Name'></input>
             <input type="text" name="last_name" value='Last Name'></input>
           </td>
+          <td><p id="chk_name_msg" style="margin-left: -180px; font-size:10px;font-family: Century Gothic;color: red; "></p></td>
         </tr>
         <tr>
           <td>
@@ -99,16 +101,19 @@ body{
       <img id="img-id-nochk" src="{{url_prefix}}/media/img/uncheckmark.gif">
       <img id="img-id-spin" src="{{url_prefix}}/media/img/loading_small.gif">
           </td>
+          <td><p id="chk_email_msg" style="margin-left: -180px; font-size:10px;font-family: Century Gothic;color: red; "></p></td>
         </tr>
         <tr>
           <td>
             <input style="width:268px" type="text" name="reemail" value='Re-enter Email'></input>
           </td>
+          <td><p id="chk_reemail_msg" style="margin-left: -180px;font-size:10px;font-family: Century Gothic;color: red; "></p></td>
         </tr>
         <tr>
           <td>
             <input style="width:268px" type="text" name="password" value='Enter Password'> </input>
           </td>
+          <td><p id="chk_pwd_msg" style="margin-left: -180px; font-size:10px;font-family: Century Gothic;color: red; "></p></td>
         </tr>
       </table>
       <br/>
@@ -141,9 +146,28 @@ $('#btn_login').click( function() {
 });
 
 $('#btn_signup').submit( function(event) {
+  if ( $('#chk_email_mmsg').text() != "" || $('#chk_reemail_msg').text() != ""|| $('.ignuptable input[name=password]').val() == "" ) {
+    return;
+  }
   event.preventDefault(); 
 });
 
+function checkDupEmail(email) {
+  //$('#img-id-spin').show();
+  $.get("../dup_email/", {'email': email})
+  .done( function(data) {
+   // $('#img-id-spin').hide();
+    if (data == 1) {
+      //$('#img-id-nochk').show();
+      $('#chk_email_msg').text("Email address already exists.");
+    } else {
+      $('#chk_email_msg').text("");
+      $('#img-id-chk').show();
+    }
+  })
+  .always(function(){
+  });
+}
 
 function setupInput(name, placeholder) {
   $(".signuptable input[name="+name+"]").focus(function() {
@@ -153,6 +177,30 @@ function setupInput(name, placeholder) {
   }).blur(function(){
     if ($(this).val() == '') {
       $(this).val(placeholder);
+    } else {
+      if (name == "email") {
+        if (!isValidEmailAddress( $(this).val()) ){
+          $('#chk_email_msg').text("Email address is not valid.");
+        } else {
+          checkDupEmail( $(this).val() );
+        }
+      } else if (name == "reemail") {
+        if ( $(this).val() != $('.signuptable input[name=email]').val() ) {
+          $('#chk_reemail_msg').text("Re-entered Email address does not match.");
+        }
+      } else if (name == "password") {
+        if ( $(this).val() == "" ) {
+          $('#chk_pwd_msg').text("Password should not be empty.");
+        }
+      } else if (name == "first_name") {
+        if ( $(this).val() == "First Name" ) {
+          $('#chk_name_msg').text("First Name should not be empty.");
+        }
+      } else if (name == "last_name") {
+        if ( $(this).val() == "Last Name" ) {
+          $('#chk_name_msg').text("Last Name should not be empty.");
+        }
+      }
     }
   });
 }

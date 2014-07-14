@@ -41,6 +41,7 @@ def GetDS():
         return DS
 
 def ExportToDB(shp_path, layer_uuid):
+    GetDS()
     global db_host, db_port, db_uname, db_upwd, db_name
     print "export starting..", layer_uuid
     table_name = TBL_PREFIX + layer_uuid
