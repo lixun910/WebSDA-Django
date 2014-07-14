@@ -812,18 +812,18 @@ $(document).ready(function() {
   });
   $('#btnCreateW').click(function(){
     // pop-up weights creation dialog
-    //localStorage.getItem('current_layer') != null) {
-    $('#dialog-weights').dialog('open');
+    if (localStorage.getItem('current_layer') != undefined) {
+      $('#dialog-weights').dialog('open');
+    }
   });
   $('#btnSpreg').click(function(){
     // pop-up weights creation dialog
-    //localStorage.getItem('current_layer') != null) {
-    $('#dialog-regression').dialog('open');
-
+    if (localStorage.getItem('current_layer') != undefined) {
+      $('#dialog-regression').dialog('open');
+    }
   });
   $('#btnNewMap').click(function(){
-    var layer_uuid = localStorage.getItem('current_layer');
-    if (  layer_uuid != undefined ){
+    if (localStorage.getItem('current_layer') != undefined) {
       window.open("../new_map/?layer_uuid="+layer_uuid,"_blank");
     }
   });

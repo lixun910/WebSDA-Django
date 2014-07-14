@@ -20,7 +20,7 @@ urlpatterns += patterns('myproject.myapp.views',
 
 urlpatterns += patterns('myproject.myapp.views_map',
     url(r'^get_dropbox_data/$', 'get_dropbox_data', name='get map data dropbox'),
-    url(r'^n_maps/$', 'get_n_maps', name='login'),
+    url(r'^map_count/$', 'get_n_maps', name='login'),
     url(r'^new_map/$', 'new_map', name='get new map'),
     url(r'^remove_map/$', 'remove_map', name='delete map'),
     url(r'^get_fields/$', 'get_fields', name='get field names'),
