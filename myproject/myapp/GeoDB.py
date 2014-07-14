@@ -45,7 +45,7 @@ def ExportToDB(shp_path, layer_uuid):
     print "export starting..", layer_uuid
     table_name = TBL_PREFIX + layer_uuid
     if settings.DB == 'postgres':
-        script = 'ogr2ogr -skipfailures -append -f "PostgreSQL" -overwrite PG:"host=%s dbname=%s user=%s password=%s" %s -nln %s -nlt GEOMETRY > /dev/null'  % (db_host, db_name, db_uname, db_upwd, shp_path, table_name)
+        script = 'ogr2ogr -skipfailures -append -f "PostgreSQL" -overwrite PG:"host=%s dbname=%s user=%s password=%s" %s -nln %s -nlt GEOMETRY -lco PRECISION=NO > /dev/null'  % (db_host, db_name, db_uname, db_upwd, shp_path, table_name)
         print script
         rtn = subprocess.call( script, shell=True)
     else:
