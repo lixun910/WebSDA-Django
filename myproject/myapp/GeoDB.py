@@ -210,7 +210,8 @@ def AddField(layer_uuid, field_name, field_type, values):
     
 def GetDataSource(drivername, filepath):
     driver = ogr.GetDriverByName(drivername)
-    ds = driver.Open(filepath, 0)
+    print filepath, driver
+    ds = driver.Open(str(filepath),0)
     return ds
     
 def GetMetaData(filepath, table_name, drivername=None):
