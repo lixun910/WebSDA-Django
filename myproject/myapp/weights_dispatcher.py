@@ -1,4 +1,5 @@
 from pysal import W, w_union, higher_order
+from pysal import open as po
 from pysal import rook_from_shapefile as rook
 from pysal import queen_from_shapefile as queen
 from pysal.weights.user import knnW_from_shapefile
@@ -20,7 +21,14 @@ def CreateWeights(shp_path, weights_name, w_unique_ID, weights_type, \
     weights_type = int(weights_type)
     if weights_type < 0 or weights_type > 2:
         raise "Weights Type is illegal."
-    w_unique_ID = w_unique_ID.lower()
+    
+    dbf_path = shp_path[:-3] + "dbf"
+    dbf = po(dbf_path, 'r') 
+    for item in dbf.header:
+        if item.lower() == w_unique_ID.lower():
+            w_unique_ID = item
+            break
+        
     if weights_type == 0: 
         # contiguity-based weights | GAL file
         cont_type = int(cont_type)
