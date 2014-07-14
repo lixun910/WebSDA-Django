@@ -110,10 +110,20 @@ def SaveDBTableToShp(geodata, table_name):
     document = Document.objects.get(uuid=file_uuid)
     shp_path = settings.PROJECT_ROOT + document.docfile.url
     shp_path = shp_path[0: shp_path.rindex(".")] + ".shp"
+    tmp_path = shp_path[0: shp_path.rindex("/")+1] + table_name + ".shp"
     import subprocess
-    script = 'ogr2ogr -overwrite -f "ESRI Shapefile" %s PG:"host=%s dbname=%s user=%s password=%s" %s' %(shp_path, db_host, db_name, db_uname, db_upwd, table_name)
+    script = 'ogr2ogr -f "ESRI Shapefile" %s PG:"host=%s dbname=%s user=%s password=%s" %s' %(tmp_path, db_host, db_name, db_uname, db_upwd, table_name)
     print "SaveDBTableToShp", script
     rtn = subprocess.call( script, shell=True)    
+    import shutil
+    shutil.copy(tmp_path[:-3]+"dbf", shp_path[:-3]+"dbf")
+    # remove tmp files 
+    shp_dir = shp_path[0: shp_path.rindex("/")]
+    filelist = [ f for f in os.listdir(shp_dir) \
+                 if f.startswith(table_name) ]
+    for f in filelist:
+        f = shp_dir + os.sep + f
+        os.remove(f)
         
     
 def IsLayerExist(layer_uuid):

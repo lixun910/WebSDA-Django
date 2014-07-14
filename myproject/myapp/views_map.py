@@ -88,7 +88,6 @@ def remove_map(request):
                          if f.startswith(filename_wo_ext) ]
             for f in filelist:
                 f = shp_dir + os.sep + f
-                print f
                 os.remove(f)
                 
             geodata = Geodata.objects.get(uuid=layer_uuid)
