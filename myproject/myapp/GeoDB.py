@@ -34,10 +34,10 @@ def GetDS():
                        + '/../database/geodata.sqlite'
             SQLITE_DRIVER = ogr.GetDriverByName('SQLite')
             DS = SQLITE_DRIVER.Open(GEODB_PATH, 0) # readonly
-        print 'OK to GeoDB'
+        print 'OK to GeoDB. DS:', DS
         return DS
     else:
-        print 'return cached DS', DS
+        print 'return cached DS:', DS
         return DS
 
 def ExportToDB(shp_path, layer_uuid):
@@ -127,26 +127,26 @@ def SaveDBTableToShp(geodata, table_name):
         
     
 def IsLayerExist(layer_uuid):
-    ds = GetDS()
+    GetDS()
     table_name = TBL_PREFIX + layer_uuid
-    layer = ds.GetLayer(table_name)
+    layer = DS.GetLayer(table_name)
     if layer: 
         return True
     else:
         return False
 
 def DeleteLayer(layer_uuid):
-    ds = GetDS()
+    GetDS()
     table_name = TBL_PREFIX + layer_uuid
     sql = "DROP TABLE %s CASCADE" % table_name
-    ds.ExecuteSQL(str(sql))
+    DS.ExecuteSQL(str(sql))
     
 def IsFieldUnique(layer_uuid, field_name):
-    ds = GetDS()
+    GetDS()
     table_name = TBL_PREFIX + layer_uuid
     sql = "SELECT count(%s) as a, count(distinct %s) as b from %s" % (field_name, field_name, table_name)
-    tmp_layer = ds.ExecuteSQL(str(sql))
-    print str(sql), ds, tmp_layer
+    tmp_layer = DS.ExecuteSQL(str(sql))
+    print str(sql), DS, tmp_layer
     tmp_layer.ResetReading()
     feature = tmp_layer.GetNextFeature()
     all_n = feature.GetFieldAsInteger(0) 
@@ -158,16 +158,16 @@ def IsFieldUnique(layer_uuid, field_name):
         return False
 
 def AddUniqueIDField(layer_uuid, field_name):
-    ds = GetDS()
+    GetDS()
     table_name = TBL_PREFIX + layer_uuid
     # add field first
     try:
         sql = "alter table %s add column %s integer" % (table_name, field_name)
         print sql
-        tmp_layer = ds.ExecuteSQL(str(sql))
+        tmp_layer = DS.ExecuteSQL(str(sql))
         sql = "update %s set %s = ogc_fid" % (table_name, field_name)
         print sql
-        tmp_layer = ds.ExecuteSQL(str(sql))
+        tmp_layer = DS.ExecuteSQL(str(sql))
         
         
         from myproject.myapp.models import Geodata
@@ -191,17 +191,17 @@ def AddUniqueIDField(layer_uuid, field_name):
         return False
 
 def AddField(layer_uuid, field_name, field_type, values):
-    ds = GetDS()
+    GetDS()
     table_name = TBL_PREFIX + layer_uuid
     field_db_type = ['integer', 'numeric', 'varchar(255)'][field_type]
    
     if field_name and values:
         sql = "alter table %s add column %s %s" % (table_name, field_name, field_db_type)
-        tmp_layer = ds.ExecuteSQL(str(sql))
+        tmp_layer = DS.ExecuteSQL(str(sql))
         for i, val in enumerate(values):
             if field_type == 2: val = "'%s'" % val
             sql = "update %s set %s=%s where ogc_fid=%d" % (table_name, field_name, val, i+1)
-            ds.ExecuteSQL(str(sql))
+            DS.ExecuteSQL(str(sql))
    
     from myproject.myapp.models import Geodata
     geodata = Geodata.objects.get(uuid = layer_uuid)
@@ -256,11 +256,11 @@ def GetGeometries(layer_uuid):
 
 # 0 Integer 2 Real 4 String
 def GetTableData(layer_uuid, column_names, drivername=None, filepath=None):
-    ds = GetDS()
+    GetDS()
     table_name = TBL_PREFIX + layer_uuid
-    lyr = ds.GetLayer(table_name)
+    lyr = DS.GetLayer(table_name)
     if lyr is None:
-        print "GetTableData", table_name, ds
+        print "GetTableData", table_name, DS
         print "DS.GetLayer is none"
         return None
     lyrDefn = lyr.GetLayerDefn()
