@@ -819,7 +819,7 @@ $(document).ready(function() {
   dropZone.addEventListener('drop', handleFileSelect, false);
 
   // Buttons 
-  $('#btnOpenData, #btnAbout').css("opacity",1);
+  $('#btnOpenData').css("opacity",1);
   if ( localStorage["current_layer"] ) {
     $('#btnCreateW, #btnSpreg, #btnNewMap').css("opacity",1);
   }
@@ -910,8 +910,8 @@ $('#btn_logout').click(function(){
         <tr><td><div class="block_button" id="btnCreateW"></div></td></tr> 
         <tr><td><div class="block_button" id="btnSpreg"></div></td></tr> 
         <tr><td height="10px"></td></tr>
-        <tr><td><div class="block_button" id="btnAbout"></div></td></tr>
           <!--
+        <tr><td><div class="block_button" id="btnAbout"></div></td></tr>
           <td><div class="block_button" id="btnAddLayer"></div></td> 
           <td><div class="block_button" id="btnSave"></div></td> 
           <td><div class="block_button" id="btnShowTable"></div></td> 
