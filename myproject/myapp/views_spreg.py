@@ -210,6 +210,10 @@ def spatial_regression(request):
     if name_r: request_col_names.append(name_r)
     if name_t: request_col_names.append(name_t)
     data = GeoDB.GetTableData(str(layer_uuid), request_col_names)
+   
+    if data == None: 
+        result["message"] = "Retrieve data from database error."
+        return HttpResponse(json.dumps(result))
     
     y = np.array([data[name_y]]).T
     ye = np.array([data[name] for name in name_ye]).T if name_ye else None

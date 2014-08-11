@@ -1747,7 +1747,10 @@ $(function() {
         }
       } catch (e) {console.log(e);}
     })
-    .fail(function(data){ ShowMsgBox("Erro","Spatial regression failed.");});
+    .fail(function(data){ 
+      $('#dlg-run').dialog("close");
+      ShowMsgBox("Erro","Spatial regression failed.");
+    });
     });
   });
 </script>

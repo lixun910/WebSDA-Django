@@ -37,7 +37,7 @@ def GetDS():
         print 'OK to GeoDB'
         return DS
     else:
-        print 'return cached DS'
+        print 'return cached DS', DS
         return DS
 
 def ExportToDB(shp_path, layer_uuid):
@@ -260,6 +260,7 @@ def GetTableData(layer_uuid, column_names, drivername=None, filepath=None):
     table_name = TBL_PREFIX + layer_uuid
     lyr = ds.GetLayer(table_name)
     if lyr is None:
+        print "GetTableData", table_name, ds
         print "DS.GetLayer is none"
         return None
     lyrDefn = lyr.GetLayerDefn()
