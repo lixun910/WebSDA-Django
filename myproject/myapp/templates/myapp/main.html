@@ -1071,12 +1071,14 @@ $('#btn_logout').click(function(){
                 <li class="placeholder">Add your items here</li>
               </ol>
             </div>
+            <!--
             <h2><a href="#">T</a></h2>
             <div class="drop_box" id="t_box">
               <ol>
                 <li class="placeholder">Add your items here</li>
               </ol>
             </div>
+            -->
           </div>
           <div id="x_catalog">
             <h2><a href="#">X (Required) </a></h2>
@@ -1183,7 +1185,7 @@ $('#ul-x-variables').selectable().click( function(evt) {
   var box_id = box.closest("div").attr("id");
   var n_items = box.children().length;
   if ( n_items > 0) {
-    if (box_id === 'y_box'||box_id==='t_box'||box_id==='r_box') 
+    if (box_id === 'y_box'||box_id==='r_box') 
       return; 
   }
   // drop gragged item
@@ -1383,7 +1385,7 @@ $('#btn-save-predy').click(function() {
 
 <script>
 var restSpreg = function() {
-  $.each($('#x_box li, #y_box li, #ye_box li, #inst_box li, #r_box li, #t_box li'), function(i, v) { $(v).dblclick();});
+  $.each($('#x_box li, #y_box li, #ye_box li, #inst_box li, #r_box li'), function(i, v) { $(v).dblclick();});
   $('input[name="model_type"][value="0"]').prop('checked', true)
   $('input[name="method"]').prop('disabled', true)
   $('input[name="method"][value="0"]').prop('checked', true).prop('disabled', false);
@@ -1414,7 +1416,7 @@ $(function() {
       var box_id = $(this).closest("div").attr("id");
       var n_items = $(this).children().length;
       if ( n_items > 0) {
-        if (box_id === 'y_box'||box_id==='t_box'||box_id==='r_box') 
+        if (box_id === 'y_box'||box_id==='r_box') 
           return; 
       }
       // drop gragged item
@@ -1578,7 +1580,8 @@ $(function() {
           var ye = $.GetTextsFromObjs($('#ye_box li'));
           var h = $.GetTextsFromObjs($('#inst_box li'));
           var r = $.GetTextsFromObjs($('#r_box li'));
-          var t = $.GetTextsFromObjs($('#t_box li'));
+          //var t = $.GetTextsFromObjs($('#t_box li'));
+          var t = [];
           var error = [0,0,0];
           $('input:checkbox[name=stderror]').each(function(i,obj){
             if (obj.checked) error[i] = 1;
@@ -1645,7 +1648,7 @@ $(function() {
                 load_vars( data['ye'], $('#ye_box') );
                 load_vars( data['h'], $('#inst_box') );
                 load_vars( data['r'], $('#r_box') );
-                load_vars( data['t'], $('#t_box') );
+                //load_vars( data['t'], $('#t_box') );
               } 
             });
           }
@@ -1701,7 +1704,7 @@ $(function() {
     var ye = $.GetTextsFromObjs($('#ye_box li'));
     var h = $.GetTextsFromObjs($('#inst_box li'));
     var r = $.GetTextsFromObjs($('#r_box li'));
-    var t = $.GetTextsFromObjs($('#t_box li'));
+    //var t = $.GetTextsFromObjs($('#t_box li'));
     // check error flag 
     var error = [0,0,0];
     var conti = true;
