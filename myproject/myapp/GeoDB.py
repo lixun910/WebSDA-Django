@@ -40,8 +40,13 @@ def GetDS():
         print 'return cached DS:', DS
         return DS
 
+def CloseDS():
+    global DS
+    DS.Destroy()
+    DS = None
+    print 'close DS'
+    
 def ExportToDB(shp_path, layer_uuid):
-    GetDS()
     global db_host, db_port, db_uname, db_upwd, db_name
     print "export starting..", layer_uuid
     table_name = TBL_PREFIX + layer_uuid
@@ -130,6 +135,7 @@ def IsLayerExist(layer_uuid):
     GetDS()
     table_name = TBL_PREFIX + layer_uuid
     layer = DS.GetLayer(table_name)
+    CloseDS()
     if layer: 
         return True
     else:
@@ -140,6 +146,7 @@ def DeleteLayer(layer_uuid):
     table_name = TBL_PREFIX + layer_uuid
     sql = "DROP TABLE %s CASCADE" % table_name
     DS.ExecuteSQL(str(sql))
+    CloseDS()
     
 def IsFieldUnique(layer_uuid, field_name):
     GetDS()
@@ -152,6 +159,7 @@ def IsFieldUnique(layer_uuid, field_name):
     all_n = feature.GetFieldAsInteger(0) 
     uniq_n = feature.GetFieldAsInteger(1)
     print all_n, uniq_n
+    CloseDS()
     if all_n == uniq_n:
         return True
     else: 
@@ -184,10 +192,14 @@ def AddUniqueIDField(layer_uuid, field_name):
        
         # save changes to shp file (pysal needs shp file) 
         SaveDBTableToShp(geodata, table_name)
+        
+        CloseDS()
+        
         return True
     except Exception, e:
         print "AddUniqueIDField() error"
         print str(e)
+        CloseDS()
         return False
 
 def AddField(layer_uuid, field_name, field_type, values):
@@ -202,7 +214,7 @@ def AddField(layer_uuid, field_name, field_type, values):
             if field_type == 2: val = "'%s'" % val
             sql = "update %s set %s=%s where ogc_fid=%d" % (table_name, field_name, val, i+1)
             DS.ExecuteSQL(str(sql))
-   
+    CloseDS() 
     from myproject.myapp.models import Geodata
     geodata = Geodata.objects.get(uuid = layer_uuid)
     if not geodata:
@@ -248,6 +260,7 @@ def GetMetaData(filepath, table_name, drivername=None):
         #print fieldName, fieldTypeCode, fieldType
         fields[fieldName] = fieldType
     meta_data['fields'] = fields
+    ds.Destroy()
     return meta_data
 
 def GetGeometries(layer_uuid):
@@ -296,6 +309,8 @@ def GetTableData(layer_uuid, column_names, drivername=None, filepath=None):
                 column_values[col_name].append( feat.GetField(col_pos) )
                 
         feat = lyr.GetNextFeature()
+        
+    CloseDS()
     return column_values
 
 #print GetMetaData("nat")
