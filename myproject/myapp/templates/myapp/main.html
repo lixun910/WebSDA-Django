@@ -267,7 +267,7 @@ function loadMinPairDist() {
     });
   }
 }
-function loadFieldNames() {
+function loadFieldNames( onSuccess ) {
   var layer_uuid = localStorage.getItem('current_layer');
   if (  layer_uuid != undefined ){
     $.get("../get_fields/", {"layer_uuid": layer_uuid})
@@ -300,6 +300,10 @@ function loadFieldNames() {
       });
       $( "#vars ul li" ).draggable({ helper: "clone" });
       new List('vars', {valueNames:['name']});
+      
+      if (onSuccess) {
+        onSuccess();
+      }
     });
   }
 }
@@ -1509,6 +1513,7 @@ $(function() {
   $( "#dialog-regression" ).dialog({
     dialogClass: "dialogWithDropShadow",
     width: 900,
+    height: 800,
     autoOpen: false,
     modal: true,
   });
@@ -1539,9 +1544,12 @@ $(function() {
             }).done(function(data) { 
               console.log("add_uid", data); 
               if (data["success"] == 1) {
-                loadFieldNames();
+                loadFieldNames(function(){
+                  $('#sel-w-id').val(name).change()
+                });
                 that.dialog( "close" );
                 ShowMsgBox("", "Add uniue ID successful.");
+                ;
               }
             });
           }
