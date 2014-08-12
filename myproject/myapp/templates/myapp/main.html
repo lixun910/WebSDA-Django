@@ -595,33 +595,6 @@ $(document).ready(function() {
   localStorage.setItem('current_layer', '{{geodata0.uuid}}');
   {% endif %}
 
-  // create websocket
-  if (! ("WebSocket" in window)) WebSocket = MozWebSocket; // firefox
-  socket = new WebSocket("ws://localhost:9000");
-  socket.onopen = function(event) {
-    socket.send('{connected:'+ pageid + '}');
-    // show server response
-    socket.onmessage = function(e) {
-      // handle different messages
-      try {
-        data = JSON.parse(e.data);
-        if ( 'SELECTED' in data ) {
-          select_ids = data['SELECTED'];
-          d3.selectAll("path")
-            .attr("class", "unselected");
-          d3.selectAll("path")
-            .each(function(d,i){ 
-            if (jQuery.inArray(d.properties.FIPS, select_ids) > -1) {
-              //if (d.id in select_ids) {
-              d3.select(this).attr("class", "selected");
-            }
-          });
-        }
-      } catch (err) {
-        console.error("Parsing WebSOcket response error:", err);            
-      }
-    }
-  }
 
   // Dropbox Plugin
   var dropboxOptions = {
@@ -1705,6 +1678,7 @@ $(function() {
     var h = $.GetTextsFromObjs($('#inst_box li'));
     var r = $.GetTextsFromObjs($('#r_box li'));
     //var t = $.GetTextsFromObjs($('#t_box li'));
+    var t = [];
     // check error flag 
     var error = [0,0,0];
     var conti = true;
