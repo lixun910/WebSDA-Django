@@ -423,7 +423,7 @@ function CreateMapContainer(jsonFilePath) {
 
 function SaveMapThumbnail(canvas) {
   var layer_uuid = localStorage.getItem('current_layer');
-  if ( layer_uuid != undefined ) {
+  if ( layer_uuid != undefined && canvas[0] != undefined) {
     canvas.attr("id", layer_uuid);
     $("<div class='remove_map' id='"+layer_uuid+"'></div>").insertBefore(canvas.parent());
     InitRemoveButtons();
@@ -765,7 +765,7 @@ $(document).ready(function() {
             var containerID = 'map' + mapCounter,
                 canvas = $('#' + containerID + ' canvas');
             SaveMapThumbnail(canvas);
-          }, 1000);
+          }, 2000);
         }
       } catch(e){console.log(e);}
       // Ensure that the progress bar displays 100% at the end.

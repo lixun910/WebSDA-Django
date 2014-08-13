@@ -5,21 +5,27 @@ from django.conf import settings
 from hashlib import md5
 
 TBL_PREFIX = "d"
-
-DS = None
-db_host = None
-db_port = None
-db_uname = None
-db_upwd = None
-db_name = None
+db_set = settings.DATABASES['default']
+db_host = db_set['HOST']
+db_port = db_set['PORT']
+db_uname = db_set['USER']
+db_upwd = db_set['PASSWORD']
+db_name = db_set['NAME']
 
 def GetDS():
-    global DS
+    global db_host, db_port, db_uname, db_upwd, db_name
+    print 'Connecting to GeoDB'
+    conn_str = "PG: host=%s dbname=%s user=%s password=%s" \
+             % (db_host, db_name, db_uname, db_upwd)
+    print "conn_str", conn_str
+    DS = ogr.Open(conn_str) 
+    print 'open DS:', DS
+    return DS
+    """
     if DS is None:
         print 'Connecting to GeoDB'
         if settings.DB == 'postgres':
             db_set = settings.DATABASES['default']
-            global db_host, db_port, db_uname, db_upwd, db_name
             db_host = db_set['HOST']
             db_port = db_set['PORT']
             db_uname = db_set['USER']
@@ -39,12 +45,12 @@ def GetDS():
     else:
         print 'return cached DS:', DS
         return DS
+    """
 
-def CloseDS():
-    global DS
-    DS.Destroy()
-    DS = None
-    print 'close DS'
+def CloseDS(ds):
+    ds.Destroy()
+    ds= None
+    print 'close DS:', ds
     
 def ExportToDB(shp_path, layer_uuid):
     global db_host, db_port, db_uname, db_upwd, db_name
@@ -132,24 +138,24 @@ def SaveDBTableToShp(geodata, table_name):
         
     
 def IsLayerExist(layer_uuid):
-    GetDS()
+    DS = GetDS()
     table_name = TBL_PREFIX + layer_uuid
     layer = DS.GetLayer(table_name)
-    CloseDS()
+    CloseDS(DS)
     if layer: 
         return True
     else:
         return False
 
 def DeleteLayer(layer_uuid):
-    GetDS()
+    DS = GetDS()
     table_name = TBL_PREFIX + layer_uuid
     sql = "DROP TABLE %s CASCADE" % table_name
     DS.ExecuteSQL(str(sql))
-    CloseDS()
+    CloseDS(DS)
     
 def IsFieldUnique(layer_uuid, field_name):
-    GetDS()
+    DS = GetDS()
     table_name = TBL_PREFIX + layer_uuid
     sql = "SELECT count(%s) as a, count(distinct %s) as b from %s" % (field_name, field_name, table_name)
     tmp_layer = DS.ExecuteSQL(str(sql))
@@ -159,14 +165,14 @@ def IsFieldUnique(layer_uuid, field_name):
     all_n = feature.GetFieldAsInteger(0) 
     uniq_n = feature.GetFieldAsInteger(1)
     print all_n, uniq_n
-    CloseDS()
+    CloseDS(DS)
     if all_n == uniq_n:
         return True
     else: 
         return False
 
 def AddUniqueIDField(layer_uuid, field_name):
-    GetDS()
+    DS = GetDS()
     table_name = TBL_PREFIX + layer_uuid
     # add field first
     try:
@@ -181,6 +187,7 @@ def AddUniqueIDField(layer_uuid, field_name):
         from myproject.myapp.models import Geodata
         geodata = Geodata.objects.get(uuid = layer_uuid)
         if not geodata:
+            CloseDS(DS)
             return False
         #fields = json.loads(geodata.fields)
         fields = eval(geodata.fields)
@@ -193,17 +200,17 @@ def AddUniqueIDField(layer_uuid, field_name):
         # save changes to shp file (pysal needs shp file) 
         SaveDBTableToShp(geodata, table_name)
         
-        CloseDS()
+        CloseDS(DS)
         
         return True
     except Exception, e:
         print "AddUniqueIDField() error"
         print str(e)
-        CloseDS()
+        CloseDS(DS)
         return False
 
 def AddField(layer_uuid, field_name, field_type, values):
-    GetDS()
+    DS = GetDS()
     table_name = TBL_PREFIX + layer_uuid
     field_db_type = ['integer', 'numeric', 'varchar(255)'][field_type]
    
@@ -214,7 +221,7 @@ def AddField(layer_uuid, field_name, field_type, values):
             if field_type == 2: val = "'%s'" % val
             sql = "update %s set %s=%s where ogc_fid=%d" % (table_name, field_name, val, i+1)
             DS.ExecuteSQL(str(sql))
-    CloseDS() 
+    CloseDS(DS) 
     from myproject.myapp.models import Geodata
     geodata = Geodata.objects.get(uuid = layer_uuid)
     if not geodata:
@@ -269,10 +276,11 @@ def GetGeometries(layer_uuid):
 
 # 0 Integer 2 Real 4 String
 def GetTableData(layer_uuid, column_names, drivername=None, filepath=None):
-    GetDS()
+    DS = GetDS()
     table_name = TBL_PREFIX + layer_uuid
     lyr = DS.GetLayer(table_name)
     if lyr is None:
+        CloseDS(DS)
         print "GetTableData", table_name, DS
         print "DS.GetLayer is none"
         return None
@@ -310,7 +318,7 @@ def GetTableData(layer_uuid, column_names, drivername=None, filepath=None):
                 
         feat = lyr.GetNextFeature()
         
-    CloseDS()
+    CloseDS(DS)
     return column_values
 
 #print GetMetaData("nat")
