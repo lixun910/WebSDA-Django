@@ -152,9 +152,10 @@ def save_pdf(request):
     userid = request.user.username
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
-    from reportlab.pdfgen import canvas
     from reportlab.lib.units import inch
-    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Spacer
+    from reportlab.platypus.flowables import Preformatted, Image
+    from reportlab.lib.styles import getSampleStyleSheet
     
     if request.method == 'POST': 
         layer_uuid = request.POST.get('layer_uuid',None)
@@ -167,17 +168,21 @@ def save_pdf(request):
                 image_location = settings.PROJECT_ROOT + shp_location + ".png"
                 response = HttpResponse(content_type='application/pdf')
                 response['Content-Disposition'] = 'attachment;filename="result.pdf"'
-                p = canvas.Canvas(response, pagesize=letter)
-                textObject = p.beginText()
-                #textObject.setTextOrigin(1.3*inch, 7.5*inch)
-                textObject.setTextOrigin(2, 2.5*inch)
-                textObject.setFont("Times-Roman", 8)
-                textObject.textLines(text)
-                p.drawText(textObject)
-                #p.drawImage(image_location, inch, 8*inch, 4*inch, 2.6*inch)
-                p.showPage()
-                p.save()
                 
+                styles = getSampleStyleSheet()
+                Title = "Regression result"
+                pageinfo = ""                
+
+                doc = SimpleDocTemplate(response) 
+                #Story = [Spacer(1,2*inch)]
+                Story = []
+                img = Image(image_location, 4*inch, 2.6*inch)
+                style = styles["Code"]
+                Story.append(img)
+                text = text.replace('\r','')
+                t = Preformatted(text, style)
+                Story.append(t)
+                doc.build(Story)
                 return response
                 
     return HttpResponse("ERROR")

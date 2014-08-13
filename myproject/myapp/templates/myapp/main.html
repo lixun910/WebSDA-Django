@@ -1474,6 +1474,7 @@ $(function() {
         var layer_uuid = localStorage.getItem('current_layer');
         if ( layer_uuid ) {
           var txt = $('#txt-spreg-summary').text();
+          console.log(txt);
           var rqt = "layer_uuid=" + layer_uuid + "&text=" + txt + "&csrfmiddlewaretoken={{csrf_token}}";
           $.download("../save_pdf/", rqt, "post");
         }
