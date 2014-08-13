@@ -2020,6 +2020,7 @@ $(function() {
                 $('#txt-w-name').val("").next().remove();
                 $('#sel-w-id').next().remove();
                 loadWnames();
+                $('#sel-w-id').prop("selectedIndex", -1);
                 ShowMsgBox("","Create weights done.");
                 return;
               }
