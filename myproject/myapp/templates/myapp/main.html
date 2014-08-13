@@ -1135,6 +1135,7 @@ $('#btn_logout').click(function(){
     </div>
     <div id="tabs-2" style="height:100%">
       <button id="btn-save-predy">Save values to datasource</button>
+      <a href="#" id="btn-export-predy">Export to CSV</a>
       <div id="txt-spreg-predy" > </div>
     </div>
   </div>
@@ -1194,6 +1195,9 @@ $('#btn-save-predy').click(function() {
     $(html_check_img).insertAfter("#btn-save-predy");
   });
 }
+});
+$('#btn-export-predy').on('click', function(event) {
+  exportTableToCSV.apply(this, [$('#txt-spreg-predy>table'),'export.csv']);
 });
 </script>
 
@@ -1473,10 +1477,17 @@ $(function() {
         //$( this ).dialog( "close" );
         var layer_uuid = localStorage.getItem('current_layer');
         if ( layer_uuid ) {
-          var txt = $('#txt-spreg-summary').text();
+          var txt = $('#txt-spreg-summary').text() + $('#txt-spreg-predy').html();
+          txt = txt.replace(/"/g, '');
+          txt = txt.replace(/<br>/g, '\n');
+          txt = txt.replace(/<\/tr>/g, '\n');
+          txt = txt.replace(/<\/td>/g, '    ');
           console.log(txt);
-          var rqt = "layer_uuid=" + layer_uuid + "&text=" + txt + "&csrfmiddlewaretoken={{csrf_token}}";
-          $.download("../save_pdf/", rqt, "post");
+          var inputs = '';
+          inputs += '<input type="hidden" name="layer_uuid" value="' + layer_uuid + '" />';
+          inputs += '<input type="hidden" name="csrfmiddlewaretoken" value="{{csrf_token}}" />';
+          inputs += '<input type="hidden" name="text" value="' + txt + '" />';
+          jQuery('<form action="../save_pdf/" method="post">' + inputs + '</form>').appendTo('body').submit().remove();
         }
       },
       Cancel: function() {$( this ).dialog( "close" );},

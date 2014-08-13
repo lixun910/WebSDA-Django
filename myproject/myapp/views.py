@@ -153,13 +153,14 @@ def save_pdf(request):
     if not userid:
         return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
     from reportlab.lib.units import inch
-    from reportlab.platypus import SimpleDocTemplate, Spacer
+    from reportlab.platypus import SimpleDocTemplate, Spacer, XPreformatted
     from reportlab.platypus.flowables import Preformatted, Image
     from reportlab.lib.styles import getSampleStyleSheet
     
     if request.method == 'POST': 
         layer_uuid = request.POST.get('layer_uuid',None)
         text = request.POST.get('text','')
+        print request.POST
         print text
         if layer_uuid:
             shp_url = get_file_url(userid, layer_uuid)
@@ -180,7 +181,7 @@ def save_pdf(request):
                 style = styles["Code"]
                 Story.append(img)
                 text = text.replace('\r','')
-                t = Preformatted(text, style)
+                t = XPreformatted(text, style)
                 Story.append(t)
                 doc.build(Story)
                 return response
