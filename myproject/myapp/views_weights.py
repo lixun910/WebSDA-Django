@@ -37,10 +37,11 @@ def download_w(request):
             response = HttpResponse(content_type='text/txt')
             response['Content-Disposition'] = 'attachment; filename="download.%s"' % w_type
             w = helper_get_W(w_uuid)
+            tmp_fname = settings.MEDIA_ROOT + "/temp/w.txt" 
             if w_type == "gal":
-                g = GAL("tmp", "w")
+                g = GAL(tmp_fname, "w")
             else:
-                g = GWT("tmp", "w")
+                g = GWT(tmp_fname, "w")
             g.file.close()
             g.file = response
             g.write(w)
