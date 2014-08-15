@@ -63,6 +63,8 @@ def helper_get_W(wuuid):
 
         w = W(neighbors_dict, weights_dict)
         w.name = w_record.name
+        w._varName = w_record.wid
+        w._shpName = w_record.shpfilename
         return w
     return None
 

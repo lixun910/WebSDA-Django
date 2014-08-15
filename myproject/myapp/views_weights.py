@@ -15,14 +15,40 @@ from pysal import W, w_union, higher_order
 from pysal import rook_from_shapefile as rook
 from pysal import queen_from_shapefile as queen
 from pysal import open as pysalOpen
+from pysal.core.IOHandlers.gal import GalIO as GAL
+from pysal.core.IOHandlers.gwt import GwtIO as GWT
 
 from myproject.myapp.models import Weights, Preference
 import GeoDB
-from views_utils import get_file_url, create_w_uuid, RSP_FAIL, RSP_OK
+from views_utils import get_file_url, create_w_uuid, helper_get_W, RSP_FAIL, RSP_OK
 from weights_dispatcher import CreateWeights
 
 logger = logging.getLogger(__name__)
 
+@login_required
+def download_w(request):
+    userid = request.user.username
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    if request.method == 'GET':
+        w_uuid = request.GET.get("w_name", None)
+        w_type = request.GET.get("w_type", None)
+        if w_uuid and w_type:
+            response = HttpResponse(content_type='text/txt')
+            response['Content-Disposition'] = 'attachment; filename="download.%s"' % w_type
+            w = helper_get_W(w_uuid)
+            if w_type == "gal":
+                g = GAL("tmp", "w")
+            else:
+                g = GWT("tmp", "w")
+            g.file.close()
+            g.file = response
+            g.write(w)
+            g.close()
+            return response
+    return HttpResponse(RSP_FAIL, content_type="application/json")
+            
+        
 """
 Create weights file from a shape file using PySAL.
 Note: weights are now stored in database as a JSON string, which

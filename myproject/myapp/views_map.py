@@ -9,7 +9,8 @@ from django.core.files import File
 from django.contrib.auth.decorators import login_required
 
 import numpy as np
-import json, time, os, logging
+import json, time, os, logging, StringIO
+import zipfile
 import multiprocessing as mp
 from hashlib import md5
 
@@ -68,6 +69,45 @@ def new_map(request):
                 )
     return HttpResponse(RSP_FAIL, content_type="application/json")
 
+@login_required
+def download_map(request):
+    userid = request.user.username
+    if not userid:
+        return HttpResponseRedirect(settings.URL_PREFIX+'/myapp/login/') 
+    if request.method == 'GET': 
+        layer_uuid = request.GET.get("layer_uuid","")
+        # download map files on disk
+        shp_url_obj = get_file_url(userid, layer_uuid)
+        if shp_url_obj:
+            shp_location, shp_name = shp_url_obj
+            shp_location = settings.PROJECT_ROOT + shp_location
+            print "download: shp_location,shp_name", shp_location, shp_name
+            filename_wo_ext = shp_name[0: shp_name.rindex(".")+1]
+            shp_dir = shp_location[0: shp_location.rindex("/")]
+            filename_ext = shp_name[shp_name.rindex(".")+1:]
+            if filename_ext == "shp":
+                filelist = [ f for f in os.listdir(shp_dir) \
+                             if f.startswith(filename_wo_ext) and \
+                                 not f.endswith("json") and \
+                                 not f.endswith("png")]
+            else:
+                filelist = [shp_name] # json
+            zip_subdir = "map"
+            zip_filename = "%s.zip" % zip_subdir
+            # Open StringIO to grab in-memory ZIP contents
+            s = StringIO.StringIO()
+            # The zip compressor
+            zf = zipfile.ZipFile(s, "w")
+            for f in filelist:
+                fpath = shp_dir + os.sep + f
+                zip_path = os.path.join(zip_subdir, f)
+                zf.write(fpath, zip_path)
+            zf.close()
+            resp = HttpResponse(s.getvalue(), mimetype = "application/x-zip-compressed")
+            resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
+            return resp
+    return HttpResponse(RSP_FAIL, content_type="application/json")
+        
 @login_required
 def remove_map(request):
     userid = request.user.username
