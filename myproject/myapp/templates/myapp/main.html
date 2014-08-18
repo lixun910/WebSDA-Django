@@ -441,32 +441,37 @@ function CreateMapContainer(jsonFilePath) {
   return containerID;
 }
 
-function SaveMapThumbnail(canvas) {
-  var layer_uuid = localStorage.getItem('current_layer');
-  if ( layer_uuid != undefined && canvas[0] != undefined) {
-    canvas.attr("id", layer_uuid);
-    $("<div class='remove_map' id='"+layer_uuid+"'></div>").insertBefore(canvas.parent());
-    $("<div class='download_map' id='"+layer_uuid+"'></div>").insertBefore(canvas.parent());
-    InitRemoveButtons();
-    var dataURL = canvas[0].toDataURL();
-    $.ajax({
-      type: "POST",
-      url: "../upload_canvas/",
-      data: { 
-        imageData: dataURL,
-        layer_uuid: layer_uuid,
-        csrfmiddlewaretoken: '{{ csrf_token }}',
-      }
-    }).done(function(data) {
-      console.log('save canvas:', data); 
-    });
+function SaveMapThumbnail(layer_uuid, containerID) {
+  var canvas = $('#' + containerID + ' canvas');
+  if ( layer_uuid != undefined && canvas[0] != undefined &&
+       layer_uuid == localStorage.getItem('current_layer')) {
+    if (canvas.attr("id") == undefined ) {
+      console.log("upload thumbnail");
+      canvas.attr("id", layer_uuid);
+      $("<div class='remove_map' id='"+layer_uuid+"'></div>").insertBefore(canvas.parent());
+      $("<div class='download_map' id='"+layer_uuid+"'></div>").insertBefore(canvas.parent());
+      InitRemoveButtons();
+      var dataURL = canvas[0].toDataURL();
+      $.ajax({
+        type: "POST",
+        url: "../upload_canvas/",
+        data: { 
+          imageData: dataURL,
+          layer_uuid: layer_uuid,
+          csrfmiddlewaretoken: '{{ csrf_token }}',
+        }
+      }).done(function(data) {
+        console.log('save canvas:', data); 
+      });
+    }
+  } else {
+    setTimeout( function(){ SaveMapThumbnail(layer_uuid, containerID); }, 500); 
   }
 }
 
 var w = 600;
 var h = 400;
-function ShowJsonMap(jsonFilePath, content, onSuccess) {
-  var containerID = CreateMapContainer(jsonFilePath);
+function ShowJsonMap(containerID, jsonFilePath, content, onSuccess) {
   //Load GeoJSON data
   var createJsonMap = function(json) {
     console.log("draw map", jsonFilePath);
@@ -625,8 +630,9 @@ $(document).ready(function() {
         var fileLink = files[0].link;
         var suffix = getSuffix(fileLink);
         var params = {csrfmiddlewaretoken: '{{ csrf_token }}'};
+        var containerID = CreateMapContainer(fileLink);
         if ( suffix === 'geojson' || suffix === 'json') {
-          ShowJsonMap(fileLink);
+          ShowJsonMap(containerID, fileLink);
           params['json'] = fileLink;
           ready = true;
         } else if ( $.inArray( suffix, ['shp', 'dbf','shx','prj']) >= 0) {
@@ -644,7 +650,7 @@ $(document).ready(function() {
           });
           if (shp && shx && dbf) {
             new Shapefile(shp, function(content) {
-              ShowJsonMap(shp, content.geojson);
+              ShowJsonMap(containerID, shp, content.geojson);
             });
             params['shp'] = shp;
             params['shx'] = shx;
@@ -662,14 +668,11 @@ $(document).ready(function() {
           .done( function(data) {
             $('#dlg-run').dialog("close");
             if ( data['layer_uuid'] != undefined) {
-              localStorage['current_layer']= data["layer_uuid"];
+              var layer_uuid = data["layer_uuid"];
+              localStorage['current_layer']= layer_uuid;
               fillForms(true);
-              setTimeout( function(){
-                // get canvas
-                var containerID = 'map' + mapCounter,
-                    canvas = $('#' + containerID + ' canvas');
-                SaveMapThumbnail(canvas);
-              }, 1000);
+              // get canvas
+              SaveMapThumbnail(layer_uuid, containerID);
             }
           });
         }
@@ -750,6 +753,7 @@ $(document).ready(function() {
       }
     });
     var fileurl = "local://" + shpFileName;
+    var containerID = CreateMapContainer(fileurl);
     if ( bJson) {
       var reader = new FileReader();
       //reader.onprogress = updateProgress;
@@ -758,7 +762,7 @@ $(document).ready(function() {
       reader.onloadend =  function(evt) {
         if (evt.target.readyState == FileReader.DONE) {
           var data = evt.target.result;
-          ShowJsonMap(fileurl, JSON.parse(data));
+          ShowJsonMap(containerID, fileurl, JSON.parse(data));
         }
       };
       reader.readAsText(shpFile);
@@ -767,7 +771,7 @@ $(document).ready(function() {
       var opts = { shp: shpFile };
       new Shapefile(opts, function(content){
         var json = content.geojson;
-        ShowJsonMap(fileurl, json);
+        ShowJsonMap(containerID, fileurl, json);
       }); 
     }
     
@@ -779,14 +783,12 @@ $(document).ready(function() {
       try{
         data = JSON.parse(this.responseText);
         if ( data['layer_uuid'] != undefined) {
-          localStorage['current_layer']= data["layer_uuid"];
+          var layer_uuid = data["layer_uuid"];
+          localStorage['current_layer']= layer_uuid;
           fillForms(true);
-          setTimeout( function(){
-            // get canvas
-            var containerID = 'map' + mapCounter,
-                canvas = $('#' + containerID + ' canvas');
-            SaveMapThumbnail(canvas);
-          }, 2000);
+          // get canvas
+          console.log("save map thumbnail");
+          SaveMapThumbnail(layer_uuid, containerID);
         }
       } catch(e){console.log(e);}
       // Ensure that the progress bar displays 100% at the end.
