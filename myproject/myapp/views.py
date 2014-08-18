@@ -12,7 +12,7 @@ from django.conf import settings
 from myproject.myapp.models import Document, Weights, Geodata, Preference
 from myproject.myapp.forms import DocumentForm
 
-import logging
+import logging, os
 from hashlib import md5
 from views_utils import get_file_url
 
@@ -160,8 +160,6 @@ def save_pdf(request):
     if request.method == 'POST': 
         layer_uuid = request.POST.get('layer_uuid',None)
         text = request.POST.get('text','')
-        print request.POST
-        print text
         if layer_uuid:
             shp_url = get_file_url(userid, layer_uuid)
             if shp_url:
@@ -177,9 +175,10 @@ def save_pdf(request):
                 doc = SimpleDocTemplate(response) 
                 #Story = [Spacer(1,2*inch)]
                 Story = []
-                img = Image(image_location, 4*inch, 2.6*inch)
                 style = styles["Code"]
-                Story.append(img)
+                if os.path.isfile(image_location):
+                    img = Image(image_location, 4*inch, 2.6*inch)
+                    Story.append(img)
                 text = text.replace('\r','')
                 t = XPreformatted(text, style)
                 Story.append(t)

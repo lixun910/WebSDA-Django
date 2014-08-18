@@ -1501,7 +1501,7 @@ $(function() {
         //$( this ).dialog( "close" );
         var layer_uuid = localStorage.getItem('current_layer');
         if ( layer_uuid ) {
-          var txt = $('#txt-spreg-summary').text() + $('#txt-spreg-predy').html();
+          var txt = $('#txt-spreg-summary').text();
           txt = txt.replace(/"/g, '');
           txt = txt.replace(/<br>/g, '\n');
           txt = txt.replace(/<\/tr>/g, '\n');
