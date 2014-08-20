@@ -42,11 +42,14 @@ var GeoVizMap = function(geojson, mapcanvas, extent) {
   this.height = window.innerHeight * 0.8; //mapcanvas.height;
   this.mapcanvas.width = this.width;
   this.mapcanvas.height = this.height;
-
+  this.shpType = geojson.features[0].geometry.type;
+  
   this.bbox = [];
   this.centroids = [];
   this.extent = extent;
-  if ( extent == undefined ) this.extent = this.getExtent();
+  if ( extent == undefined ) {
+    this.extent = this.getExtent();
+  }
   this.mapWidth = this.extent[1] - this.extent[0];
   this.mapHeight = this.extent[3] - this.extent[2];
 
@@ -83,9 +86,9 @@ var GeoVizMap = function(geojson, mapcanvas, extent) {
 //GeoVizMap.fromComponents = function(zipfile_url, canvas) {};
 
 // static functions
-//GeoVizMap.version = function() {
-//  return GeoVizMap.version;
-//};
+GeoVizMap.version = function() {
+  return GeoVizMap.version;
+};
 
 //
 GeoVizMap.prototype = {
@@ -94,6 +97,7 @@ GeoVizMap.prototype = {
 
   // member functions
   updateTransf: function() {
+    console.log("updateTransf");
     var whRatio = this.mapWidth / this.mapHeight,
         xyRatio = this.width / this.height;
     this.offsetX = 0.0;
@@ -116,16 +120,19 @@ GeoVizMap.prototype = {
                   .domain([this.height - this.offsetY * 2, 0])
                   .range([this.extent[2], this.extent[3]]);
   },
+  
   mapToScreen: function(px,py) {
     var x = this.scaleX(px) + this.offsetX;
     var y = this.scaleY(py) + this.offsetY;
     return [x, y];
   },
+  
   screenToMap: function(x,y) {
     var px = this.scalePX(x - this.offsetX);
     var py = this.scalePY(y - this.offsetY);
     return [px, py];
   },
+  
   getExtent: function() {
     var minX = Number.POSITIVE_INFINITY,
         maxX = Number.NEGATIVE_INFINITY,
@@ -133,28 +140,42 @@ GeoVizMap.prototype = {
         maxY = Number.NEGATIVE_INFINITY;
     this.bbox = [];
     that = this;
-    this.geojson.features.forEach(function(feat,i) {
-      var bminX = Number.POSITIVE_INFINITY,
-          bmaxX = Number.NEGATIVE_INFINITY,
-          bminY = Number.POSITIVE_INFINITY,
-          bmaxY = Number.NEGATIVE_INFINITY;
-      feat.geometry.coordinates.forEach(function(coords,j) {
-        coords.forEach( function( xy,k ) {
-          x = xy[0], y = xy[1];
-          if (x > maxX) {maxX = x;}
-          if (x < minX) {minX = x;}
-          if (y > maxY) {maxY = y;}
-          if (y < minY) {minY = y;}
-          if (x > bmaxX) {bmaxX = x;}
-          if (x < bminX) {bminX = x;}
-          if (y > bmaxY) {bmaxY = y;}
-          if (y < bminY) {bminY = y;}
+    if ( this.shpType == "Polygon" || this.shpType == "MultiPolygon" ) {
+      this.geojson.features.forEach(function(feat,i) {
+        var bminX = Number.POSITIVE_INFINITY,
+            bmaxX = Number.NEGATIVE_INFINITY,
+            bminY = Number.POSITIVE_INFINITY,
+            bmaxY = Number.NEGATIVE_INFINITY;
+        feat.geometry.coordinates.forEach(function(coords,j) {
+          coords.forEach( function( xy,k ) {
+            x = xy[0], y = xy[1];
+            if (x > maxX) {maxX = x;}
+            if (x < minX) {minX = x;}
+            if (y > maxY) {maxY = y;}
+            if (y < minY) {minY = y;}
+            if (x > bmaxX) {bmaxX = x;}
+            if (x < bminX) {bminX = x;}
+            if (y > bmaxY) {bmaxY = y;}
+            if (y < bminY) {bminY = y;}
+          });
         });
+        that.bbox.push([bminX, bmaxX, bminY, bmaxY]);
+        that.centroids.push([bminX + ((bmaxX - bminX)/2.0), bminY + ((bmaxY - bminY)/2.0)]);
       });
-      that.bbox.push([bminX, bmaxX, bminY, bmaxY]);
-      that.centroids.push([bminX + ((bmaxX - bminX)/2.0), bminY + ((bmaxY - bminY)/2.0)]);
-    });
-
+    } else if ( this.shpType == "Point" || this.shpType == "MultiPoint" ) {
+      this.geojson.features.forEach(function(feat,i) {
+        var xy = feat.geometry.coordinates, 
+            x = xy[0], y = xy[1],
+            bminX = x, bmaxX = x,
+            bminY = y, bmaxY = y;
+        if (x > maxX) {maxX = x;}
+        if (x < minX) {minX = x;}
+        if (y > maxY) {maxY = y;}
+        if (y < minY) {minY = y;}
+        that.bbox.push([bminX, bmaxX, bminY, bmaxY]);
+        that.centroids.push([bminX, bminY]);
+      });
+    }
     return [minX, maxX, minY, maxY];
   },
 
@@ -168,38 +189,25 @@ GeoVizMap.prototype = {
     return _buffer;
   },
 
-  highlight: function( ids ) {
-    var context = _self.mapcanvas.getContext("2d");
+  highlight: function( ids, context ) {
+    context = _self.mapcanvas.getContext("2d");
     context.clearRect(0, 0, _self.width, _self.height);
     context.drawImage( _self.buffer, 0, 0);
     context.lineWidth = 1;
     context.strokeStyle = "#00ffff";
-    context.fillStyle = "yellow";
+    context.fillStyle = _self.HLT_CLR;
     ids.forEach( function( id) {
-      _self.geojson.features[id].geometry.coordinates.forEach(
-        function( coords, j ) {
-          context.beginPath();
-          coords.forEach( function(xy,k) {
-            var x = xy[0], y = xy[1];
-            x = _self.scaleX(x)+ _self.offsetX;
-            y = _self.scaleY(y)+ _self.offsetY;
-  
-            if (k === 0) {
-              context.moveTo(x,y);
-            } else {
-              context.lineTo(x,y);
-            }
-          });
-          context.closePath();
-          context.stroke();
-          context.fill();
-        }
-      );
+      if (_self.shpType == "Polygon" || _self.shpType == "MultiPolygon") {
+        _self.drawPolygon( context, _self.geojson.features[id] );
+      } else if (_self.shpType == "Point" || _self.shpType == "MultiPoint") {
+        _self.drawPoint( context, _self.geojson.features[id] );
+      }
     });
     localStorage["highlight"] = ids.toString();
     if (window.opener) {
       console.log(window.opener.highlighted);
     }
+    return context;
   },
   
   drawPolygon: function( ctx, plg, stk_clr, fill_clr) {
@@ -223,17 +231,30 @@ GeoVizMap.prototype = {
     });
   },
   
+  drawPoint: function( ctx, pt, stk_clr, fill_clr) {
+    var xy = pt.geometry.coordinates,
+        x = xy[0],
+        y = xy[1];
+      x = _self.scaleX(x)+ _self.offsetX;
+      y = _self.scaleY(y)+ _self.offsetY;
+      ctx.fillRect(x, y, 2, 2);
+  },
+  
   draw: function() {
-    console.log(this.geojson);
     var context = this.mapcanvas.getContext("2d");
     context.imageSmoothingEnabled= false;
     context.lineWidth = _self.LINE_WIDTH;
 
     var that = this;
-    this.geojson.features.forEach( function(feat,i) {
-      that.drawPolygon( context, feat, that.STROKE_CLR, that.FILL_CLR );
-    });
-
+    if (this.shpType == "Polygon") {
+      this.geojson.features.forEach( function(feat,i) {
+        that.drawPolygon( context, feat, that.STROKE_CLR, that.FILL_CLR );
+      });
+    } else if (this.shpType == "Point" || this.shpType == "MultiPoint") {
+      this.geojson.features.forEach( function(feat,i) {
+        that.drawPoint( context, feat, that.STROKE_CLR, that.FILL_CLR );
+      });
+    }
   }, 
   
   // register mouse events of canvas
@@ -247,7 +268,6 @@ GeoVizMap.prototype = {
     _self.buffer = _self.createBuffer(_self.mapcanvas);
   },
   OnKeyDown: function( e ) {
-    console.log(e.keyCode);
     if ( e.keyCode == 115 ) {
       _self.isKeyDown = true;
     }
@@ -258,13 +278,15 @@ GeoVizMap.prototype = {
     _self.startX = x;
     _self.startY = y;
     console.log("isKeyDown:", _self.isKeyDown);
+    console.log("brushRect:", _self.brushRect);
     if ( _self.isKeyDown == true ) {
       if (_self.brushRect && _self.brushRect.Contains(new GPoint(x, y)) ) {
         console.log("brushing");
         _self.isBrushing = true;
       }
     }
-    if (_self.brushRect && !_self.brushRect.Contains(new GPoint(x, y)) ) {
+    if (_self.brushRect == undefined ||
+        _self.brushRect && !_self.brushRect.Contains(new GPoint(x, y)) ) {
       console.log("cancel brushing");
       var context = _self.mapcanvas.getContext("2d");
       context.clearRect(0, 0, _self.width, _self.height);
@@ -274,68 +296,82 @@ GeoVizMap.prototype = {
     }
   },
   OnMouseMove: function(evt) {
-    var x = evt.pageX, y = evt.pageY;
-    var startX, startY;
+    var x = evt.pageX, 
+        y = evt.pageY,
+        startX, 
+        startY;
+        
     if ( _self.isMouseDown == true ) {
-      var context = _self.mapcanvas.getContext("2d");
-      context.imageSmoothingEnabled= false;
-      context.clearRect(0, 0, _self.width, _self.height);
-      context.drawImage( _self.buffer, 0, 0);
-      // draw a selection box
-      context.beginPath();
+      var context;
       if ( _self.isBrushing == true ) {
         var offsetX = x - _self.startX,
             offsetY = y - _self.startY;
         startX = _self.brushRect.x0 + offsetX;
         startY = _self.brushRect.y0 + offsetY;
-        context.rect( startX, startY, _self.brushRect.GetW(), _self.brushRect.GetH() );
       } else {
         startX = _self.startX;
         startY = _self.startY;
-        var w = x - startX, h = y - startY;
-        context.rect( startX, startY, w, h);
       }
-      context.strokeStyle = _self.HLT_BRD_CLR;
-      context.stroke();
-      
       // highlight selection
-      var pt0 = _self.screenToMap(startX, startY), pt1;
+      var pt0 = _self.screenToMap(startX, startY), 
+          pt1;
       if ( _self.isBrushing == true ) {
-        pt1 = _self.screenToMap(startX + _self.brushRect.GetW(), startY + _self.brushRect.GetH());
+        pt1 = _self.screenToMap(startX + _self.brushRect.GetW(), 
+                                startY + _self.brushRect.GetH());
       } else {
         pt1 = _self.screenToMap(x,y);
       } 
       if ( x == _self.startX && y == _self.startY ) {
-        _self.bbox.forEach( function( box, i ) {
-          if ( pt1[0] >= box[0] && pt1[0] <= box[1] 
-               && pt1[1] >= box[2] && pt1[1] <= box[3] ) {
-            _self.highlight([i]);
-            _self.isMouseDown = false;
-            return;
-          }
-        });
       } else {
         var minPX = Math.min( pt0[0], pt1[0]),
             maxPX = Math.max( pt0[0], pt1[0]),
             minPY = Math.min( pt0[1], pt1[1]),
             maxPY = Math.max( pt0[1], pt1[1]);
-        context.lineWidth = 1;
         _self.selected = [];
         _self.centroids.forEach( function( pt, i ) {
-          if ( pt[0] >= minPX && pt[0] <= maxPX 
-              && pt[1] >= minPY && pt[1] <= maxPY) {
-            _self.drawPolygon( context, _self.geojson.features[i], undefined, _self.HLT_CLR );
+          if ( pt[0] >= minPX && pt[0] <= maxPX && 
+               pt[1] >= minPY && pt[1] <= maxPY) {
             _self.selected.push(i);
           }
         });
-        localStorage["highlight"] = _self.selected.toString();
+        context = _self.highlight(_self.selected);
       }
+      // draw a selection box
+      context.beginPath();
+      if ( _self.isBrushing == true ) {
+        context.rect( startX, startY, 
+                      _self.brushRect.GetW(), 
+                      _self.brushRect.GetH() );
+      } else {
+        var w = x - startX, 
+            h = y - startY;
+        context.rect( startX, startY, w, h);
+      }
+      context.strokeStyle = _self.HLT_BRD_CLR;
+      context.stroke();
+      context.closePath();
+      
     }
   },
   OnMouseUp: function(evt) {
     var x = evt.pageX, y = evt.pageY;
     if ( _self.isMouseDown == true) {
-      if ( _self.isKeyDown == true ) {
+      if ( _self.startX == x && _self.startY == y ) {
+        // point select
+        var pt = _self.screenToMap(x, y);
+        x = pt[0];
+        y = pt[1];
+        _self.bbox.forEach( function( box, i ) {
+          if ( x > box[0] && x < box[1] && 
+               y > box[2] && y < box[3] ) {
+            _self.highlight([i]);
+            _self.isMouseDown = false;
+            return;
+          }
+        });
+      }
+      else if ( _self.isKeyDown == true ) {
+        // setup brushing box
         _self.brushRect = new GRect( _self.startX, _self.startY, x, y);
       }
     }

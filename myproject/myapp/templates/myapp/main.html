@@ -303,6 +303,16 @@ function loadFieldNames( onSuccess ) {
         }
       });
       // in regression dialog
+      if ( !$('#y_box').find(".placeholder")) 
+        $('#y_box').find('li').remove().end();
+      if ( !$('#x_box').find(".placeholder")) 
+        $('#x_box').find('li').remove().end();
+      if ( !$('#ye_box').find(".placeholder")) 
+        $('#ye_box').find('li').remove().end();
+      if ( !$('#inst_box').find(".placeholder")) 
+        $('#inst_box').find('li').remove().end();
+      if ( !$('#r_box').find(".placeholder")) 
+        $('#r_box').find('li').remove().end();
       $('#ul-x-variables').find('li').remove().end();
       $.each(field_names, function(i, field_name) {
         if ( fields[field_name] != "String" ) {
