@@ -17,8 +17,8 @@ var GRect = function( x0, y0, x1, y1 ) {
 
 GRect.prototype = {
   Contains: function( gpoint ) {
-    return gpoint.x >= this.x0 && gpoint.x <= this.x1 && gpoint.y >= this.y0
-           && gpoint.y <= this.y1;
+    return gpoint.x >= this.x0 && gpoint.x <= this.x1 && 
+           gpoint.y >= this.y0 && gpoint.y <= this.y1;
   },
   GetW: function() {
     return this.x1 - this.x0;
@@ -29,15 +29,15 @@ GRect.prototype = {
 };
 
 var GeoVizMap = function(geojson, mapcanvas, extent) {
+  // private members
   this.HLT_BRD_CLR = "black";
   this.HLT_CLR = "yellow";
   this.STROKE_CLR = "#CCCCCC";
   this.FILL_CLR = "green";
   this.LINE_WIDTH = 1;
-  
-  // members
+
+  this.mapcanvas = mapcanvas instanceof jQuery ? mapcanvas[0] : mapcanvas;
   this.geojson = geojson;
-  this.mapcanvas = mapcanvas;
   this.width = window.innerWidth * 0.8;//mapcanvas.width;
   this.height = window.innerHeight * 0.8; //mapcanvas.height;
   this.mapcanvas.width = this.width;
@@ -72,7 +72,7 @@ var GeoVizMap = function(geojson, mapcanvas, extent) {
   this.mapcanvas.addEventListener('mousemove', this.OnMouseMove, false);
   this.mapcanvas.addEventListener('mousedown', this.OnMouseDown, false);
   this.mapcanvas.addEventListener('mouseup', this.OnMouseUp, false);
-  //this.mapcanvas.addEventListener('keydown', this.OnKeyDown, true);
+  this.mapcanvas.addEventListener('keydown', this.OnKeyDown, true);
   window.addEventListener('keypress', this.OnKeyDown, true);
   window.addEventListener('resize', this.OnResize, true);
   
@@ -85,16 +85,11 @@ var GeoVizMap = function(geojson, mapcanvas, extent) {
 //GeoVizMap.fromComponents = function(geojson_url, canvas) {};
 //GeoVizMap.fromComponents = function(zipfile_url, canvas) {};
 
-// static functions
-GeoVizMap.version = function() {
-  return GeoVizMap.version;
-};
+// static variable
+GeoVizMap.version = "0.1";
 
-//
+// 
 GeoVizMap.prototype = {
-  // static vars
-  version: "0.1",
-
   // member functions
   updateTransf: function() {
     console.log("updateTransf");
@@ -203,7 +198,8 @@ GeoVizMap.prototype = {
         _self.drawPoint( context, _self.geojson.features[id] );
       }
     });
-    localStorage["highlight"] = ids.toString();
+    localStorage["HL_LAYER"] = _self.mapcanvas.id;
+    localStorage["HL_IDS"] = ids.toString();
     if (window.opener) {
       console.log(window.opener.highlighted);
     }
@@ -211,24 +207,26 @@ GeoVizMap.prototype = {
   },
   
   drawPolygon: function( ctx, plg, stk_clr, fill_clr) {
-    plg.geometry.coordinates.forEach( function( coords, j ) {
-      ctx.beginPath();
-      coords.forEach( function( xy, k ) {
-        var x = xy[0], y = xy[1];
-        x = _self.scaleX(x)+ _self.offsetX;
-        y = _self.scaleY(y)+ _self.offsetY;
-        if (k === 0) {
-          ctx.moveTo(x,y);
-        } else {
-          ctx.lineTo(x,y);
-        }
+    if (plg) {
+      plg.geometry.coordinates.forEach( function( coords, j ) {
+        ctx.beginPath();
+        coords.forEach( function( xy, k ) {
+          var x = xy[0], y = xy[1];
+          x = _self.scaleX(x)+ _self.offsetX;
+          y = _self.scaleY(y)+ _self.offsetY;
+          if (k === 0) {
+            ctx.moveTo(x,y);
+          } else {
+            ctx.lineTo(x,y);
+          }
+        });
+        ctx.closePath();
+        if ( stk_clr ) ctx.strokeStyle = stk_clr;
+        ctx.stroke();
+        if ( fill_clr ) ctx.fillStyle = fill_clr;
+        ctx.fill();
       });
-      ctx.closePath();
-      if ( stk_clr ) ctx.strokeStyle = stk_clr;
-      ctx.stroke();
-      if ( fill_clr ) ctx.fillStyle = fill_clr;
-      ctx.fill();
-    });
+    }
   },
   
   drawPoint: function( ctx, pt, stk_clr, fill_clr) {
